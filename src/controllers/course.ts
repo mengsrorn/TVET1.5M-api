@@ -32,6 +32,8 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
         }
         req.body.registation_start = sDate;
         req.body.registation_end = eDate;
+        req.body.course_start = cStart;
+        req.body.course_end = cEnd;
         let query: any = {
             apply_majors: apply_majors,
             shifts: shifts,
@@ -45,15 +47,15 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
         if (req.params._id) {
             query._id = {$ne: req.params._id}
         }
-        let [getMajor, checkCourse, checkShift] = await Promise.all([
+        let [getMajor, checkShift] = await Promise.all([ //checkCourse
             controllers.applyMajor.getOne({
                 query: {
                     _id: apply_majors,
                 }
             }),
-            this.getOne({
-                query: query
-            }),
+            // this.getOne({
+            //     query: query
+            // }),
             controllers.shift.getOne({
                 query: {
                     _id: shifts
@@ -62,9 +64,9 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
         ]);
         controllers.applyMajor.checkThrowNotFound(getMajor);
         controllers.shift.checkThrowNotFound(checkShift);
-        if (checkCourse) {
-            this.throwHttpError("ថ្ងៃទទួលពាក្យស្ទួនជាកូដសម្គាល់៖ "+ checkCourse.code); 
-        }
+        // if (checkCourse) {
+        //     this.throwHttpError("ថ្ងៃទទួលពាក្យស្ទួនជាកូដសម្គាល់៖ "+ checkCourse.code); 
+        // }
     }
 
     async update(req: any) {

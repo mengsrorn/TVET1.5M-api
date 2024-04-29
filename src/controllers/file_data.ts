@@ -89,13 +89,14 @@ export default class FileDataController extends AbstractController<IFile_datas> 
         try {
             if (params.req.query.image_size) {
                 let query: any = {
-                    origin_id: params.req.params._id,
+                    origin_buckets: params.req.params._id,
                     image_size: params.req.query.image_size,
                     status: { $ne: EnumConstant.DELETE }
                 }
-                const getImage = await this.model.findOneAndUpdate(query,
-                    { $inc: {read_count: 1}}
-                );
+                // const getImage = await this.model.findOneAndUpdate(query,
+                //     { $inc: {read_count: 1}}
+                // );
+                const getImage = await this.getOne({ query });
                 if (getImage) {
                     this.downloadData(params.res, getImage.buckets, getImage.bucket_name);
                     return
@@ -105,10 +106,13 @@ export default class FileDataController extends AbstractController<IFile_datas> 
                 _id: params.req.params._id,
                 status: { $ne: EnumConstant.DELETE } 
             }
-            const getFileData = await this.model.findOneAndUpdate(
-                query,
-                { $inc: { read_count: 1 } }
-            )
+            // const getFileData = await this.model.findOneAndUpdate(
+            //     query,
+            //     { $inc: { read_count: 1 } }
+            // )
+            const getFileData = await this.getOne({
+                query
+            } )
             if (!getFileData) {
                 params.res.status(404).json(CommonUtil.makeJSONResponseError({ statusCode: 0, message: "file not found" }));
                 return

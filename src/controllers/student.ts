@@ -12,9 +12,9 @@ export default class Controller extends AbstractController<IStudents> {
         this.model = model;
     }
 
-    selectData = "createdAt first_name last_name first_name_en last_name_en profile_image phone_number gender poor_id courses poor_status scholarship_status poor_member_uuid attachment_files";
+    selectData = "createdAt first_name last_name first_name_en last_name_en profile_image phone_number phone_bank gender poor_id courses poor_status scholarship_status poor_member_uuid attachment_files";
     projectData = {
-        _id: 1, first_name: 1, last_name: 1, first_name_en: 1, last_name_en: 1, status: 1, phone_number: 1,
+        _id: 1, first_name: 1, last_name: 1, first_name_en: 1, last_name_en: 1, status: 1, phone_number: 1, phone_bank: 1,
         gender: 1, profile_image: 1, schools: 1, poor_id: 1, poor_status: 1, courses: 1, apply_majors: 1, scholarship_status: 1,
         poor_member_uuid: 1, attachment_files: 1, createdAt: 1, type_poverty_status: 1,
     }
@@ -244,6 +244,7 @@ export default class Controller extends AbstractController<IStudents> {
     }
 
     async update(req: any) {
+      
         let { first_name, last_name, date_of_birth, gender, id_card_number, poor_id } = req.body
         let _id = req.params._id;
         let [getStudent, getExistName] = await Promise.all([
@@ -968,8 +969,7 @@ export default class Controller extends AbstractController<IStudents> {
             {
                 $facet: {
                     result: [
-                        { $skip: skip },
-                        ...(limit > 0 ? [{ $limit: limit }] : []),
+                       
                         {
                             $lookup: {
                                 from: 'courses',
@@ -993,7 +993,7 @@ export default class Controller extends AbstractController<IStudents> {
                         { $unwind: { path: "$courses" } },
                         {
                             $project: {
-                                first_name: 1, last_name: 1, first_name_en: 1, last_name_en: 1, status: 1, phone_number: 1,
+                                first_name: 1, last_name: 1, first_name_en: 1, last_name_en: 1, status: 1, phone_number: 1, phone_bank: 1,
                                 gender: 1, profile_image: 1, schools: 1, poor_id: 1, poor_status: 1, courses: 1,
                                 apply_majors: "$courses.apply_majors", scholarship_status: 1
                             }
@@ -1001,12 +1001,14 @@ export default class Controller extends AbstractController<IStudents> {
                         {
                             $sort: { scholarship_status: -1, _id: 1 }
                         },
+                        { $skip: skip },
+                        ...(limit > 0 ? [{ $limit: limit }] : [])
                     ],
                     totalCount: [
                         {
                             $count: 'count'
                         }
-                    ]
+                    ],
                 }
             }            
             // this.facetAggregate({ skip, limit })
