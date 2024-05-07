@@ -65,13 +65,13 @@ export const Role = {
         _id: 3,
         name: "admin",
     },
-    verifier: {
+    training_dept: {
         _id: 4,
-        name: "verifier",
+        name: "training_dept",
     },
-    tvet: {
+    dgTVET: {
         _id: 5,
-        name: "tvet",
+        name: "DGTVET",
     },
     viewer: {
         _id: 7,

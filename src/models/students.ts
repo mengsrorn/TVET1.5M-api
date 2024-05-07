@@ -17,6 +17,7 @@ export interface IStudents {
     ethnicity: Number;
     address: IAddress;
     phone_number: string;
+    phone_bank: string;
     poor_id: string;
     poor_status: number;
     poor_member_uuid: string;
@@ -52,6 +53,7 @@ const schema = new Schema({
     profile_image: String,
     date_of_birth: Date,
     phone_number: String,
+    phone_bank: String,
     id_card_number: String,
     place_of_birth: {
         detail: String,

@@ -23,7 +23,7 @@ export default class Controller extends AbstractController<IRoles> {
         let getRoleId = req.body._user.roles._id;
         let validRoles : number[] = []
         if (getRoleId == Role.admin._id) {
-            validRoles = [Role.admin._id, Role.school._id, Role.tvet._id, Role.verifier._id, Role.viewer._id, Role.teacher._id, Role.officer._id, Role.read_report._id]
+            validRoles = [Role.admin._id, Role.school._id, Role.dgTVET._id, Role.training_dept._id, Role.viewer._id, Role.teacher._id, Role.officer._id, Role.read_report._id]
         } else if (getRoleId == Role.school._id) {
             validRoles = [Role.school._id, Role.teacher._id]
         } else if (getRoleId == Role.nsaf._id) {
@@ -47,13 +47,13 @@ export default class Controller extends AbstractController<IRoles> {
         }
         let getRoleId = req.body._user.roles._id;
         if (getRoleId == Role.admin._id) {
-            query._id = { $in: [Role.admin._id, Role.school._id, Role.tvet._id, Role.verifier._id, Role.viewer._id, Role.teacher._id, Role.officer._id, Role.read_report._id] }
+            query._id = { $in: [Role.admin._id, Role.school._id, Role.dgTVET._id, Role.training_dept._id, Role.viewer._id, Role.teacher._id, Role.officer._id, Role.read_report._id] }
         } else if (getRoleId == Role.school._id) {
             query._id = { $in: [Role.school._id, Role.teacher._id] }
         } else if (getRoleId == Role.nsaf._id) {
             query._id = { $in: [Role.nsaf._id] }
         } else if (getRoleId == Role.root._id) {
-            query._id = { $in: [Role.root._id, Role.admin._id, Role.school._id, Role.tvet._id, Role.verifier._id, Role.viewer._id, Role.teacher._id, Role.officer._id, Role.read_report._id ] }
+            query._id = { $in: [Role.root._id, Role.admin._id, Role.school._id, Role.dgTVET._id, Role.training_dept._id, Role.viewer._id, Role.teacher._id, Role.officer._id, Role.read_report._id ] }
         }
         let [data,count] = await this.getMany({
             query: query,

@@ -2943,12 +2943,52 @@ export default class SubjectController {
                                 as: "request_timelines"
                             },
                         },
-                        { $unwind: { path:'$request_timelines' } },
+                        { $unwind: { path: '$request_timelines' } },
+                        {
+                            $lookup: {
+                                from: 'student_internships',
+                                let: { id: "$_id" },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $eq: ["$students", "$$id"],
+                                            },
+                                            status: EnumConstant.ACTIVE,
+                                            start_date: { $lte: endDate },
+                                        }
+                                    },
+                                    { $limit: 1},
+                                ],
+                                as: "student_internships"
+                            },
+                        },
+                        { $unwind: { path: '$student_internships', preserveNullAndEmptyArrays: true } },
+                        {
+                            $lookup: {
+                                from: 'student_occupations',
+                                let: { id: "$_id" },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $eq: ["$students", "$$id"],
+                                            },
+                                            status: EnumConstant.ACTIVE,
+                                            has_job: EnumConstant.ACTIVE,
+                                        }
+                                    },
+                                    { $limit: 1},
+                                ],
+                                as: "student_occupations"
+                            },
+                        },
+                        { $unwind: { path: '$student_occupations', preserveNullAndEmptyArrays: true} },
                         {
                             $group: {
                                 _id: null,
                                 scholarship_approved_student: {
-                                    $sum:1
+                                    $sum: 1
                                 },
                                 scholarship_approved_student_female: {
                                     $sum: {
@@ -2970,7 +3010,7 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
                                                     // { $eq: ["$scholarship_status", EnumConstant.QUIT] },
-                                                    { $gt: ["$courses.course_start", "$request_timelines.createdAt"]}
+                                                    { $gt: ["$courses.course_start", "$request_timelines.createdAt"] }
                                                 ]
                                             },
                                             1,
@@ -2985,7 +3025,7 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
                                                     // { $eq: ["$scholarship_status", EnumConstant.QUIT] },
-                                                    { $gt: ["$courses.course_start", "$request_timelines.createdAt"]},
+                                                    { $gt: ["$courses.course_start", "$request_timelines.createdAt"] },
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
                                             },
@@ -3001,8 +3041,8 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
                                                     { $ne: ["$type_leavel_scholarships", controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT] },
-                                                    { $lte: ["$courses.course_start", "$request_timelines.createdAt"]},
-                                                    { $gte: ["$courses.course_end", "$request_timelines.createdAt"]},
+                                                    { $lte: ["$courses.course_start", "$request_timelines.createdAt"] },
+                                                    { $gte: ["$courses.course_end", "$request_timelines.createdAt"] },
                                                 ]
                                             },
                                             1,
@@ -3017,8 +3057,8 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
                                                     { $ne: ["$type_leavel_scholarships", controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT] },
-                                                    { $lt: ["$courses.course_start", "$request_timelines.createdAt"]},
-                                                    { $gt: ["$courses.course_end", "$request_timelines.createdAt"]},
+                                                    { $lt: ["$courses.course_start", "$request_timelines.createdAt"] },
+                                                    { $gt: ["$courses.course_end", "$request_timelines.createdAt"] },
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
                                             },
@@ -3034,8 +3074,8 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
                                                     { $eq: ["$type_leavel_scholarships", controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT] },
-                                                    { $lte: ["$courses.course_start", "$request_timelines.createdAt"]},
-                                                    { $gte: ["$courses.course_end", "$request_timelines.createdAt"]},
+                                                    { $lte: ["$courses.course_start", "$request_timelines.createdAt"] },
+                                                    { $gte: ["$courses.course_end", "$request_timelines.createdAt"] },
                                                 ]
                                             },
                                             1,
@@ -3050,8 +3090,8 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
                                                     { $eq: ["$type_leavel_scholarships", controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT] },
-                                                    { $lt: ["$courses.course_start", "$request_timelines.createdAt"]},
-                                                    { $gt: ["$courses.course_end", "$request_timelines.createdAt"]},
+                                                    { $lt: ["$courses.course_start", "$request_timelines.createdAt"] },
+                                                    { $gt: ["$courses.course_end", "$request_timelines.createdAt"] },
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
                                             },
@@ -3066,7 +3106,7 @@ export default class SubjectController {
                                             {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
-                                                    { $gt: ["$courses.course_start", maxToday]},
+                                                    { $gt: ["$courses.course_start", maxToday] },
                                                     // { $gt: ["$courses.course_end", maxToday]},
                                                 ]
                                             },
@@ -3081,7 +3121,7 @@ export default class SubjectController {
                                             {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
-                                                    { $gt: ["$courses.course_start", maxToday]},
+                                                    { $gt: ["$courses.course_start", maxToday] },
                                                     // { $gt: ["$courses.course_end", maxToday]},
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
@@ -3097,9 +3137,9 @@ export default class SubjectController {
                                             {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
-                                                    { $gte: ["$request_timelines.createdAt", minToday]},
+                                                    { $gte: ["$request_timelines.createdAt", minToday] },
                                                     { $lte: ["$request_timelines.createdAt", maxToday] },
-                                                    { $gt: ["$courses.course_start", maxToday]},
+                                                    { $gt: ["$courses.course_start", maxToday] },
                                                     // { $gt: ["$courses.course_end", maxToday]},
                                                 ]
                                             },
@@ -3114,9 +3154,9 @@ export default class SubjectController {
                                             {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
-                                                    { $gte: ["$request_timelines.createdAt", minToday]},
+                                                    { $gte: ["$request_timelines.createdAt", minToday] },
                                                     { $lte: ["$request_timelines.createdAt", maxToday] },
-                                                    { $gt: ["$courses.course_start", maxToday]},
+                                                    { $gt: ["$courses.course_start", maxToday] },
                                                     // { $gt: ["$courses.course_end", maxToday]},
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
@@ -3133,8 +3173,8 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
                                                     // { $eq: ["$scholarship_status", EnumConstant.ACTIVE ] },
-                                                    { $lt: ["$courses.course_start", maxToday]},
-                                                    { $gt: ["$courses.course_end", minToday]},
+                                                    { $lt: ["$courses.course_start", maxToday] },
+                                                    { $gt: ["$courses.course_end", minToday] },
                                                 ]
                                             },
                                             1,
@@ -3149,8 +3189,8 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
                                                     // { $eq: ["$scholarship_status", EnumConstant.ACTIVE ] },
-                                                    { $lt: ["$courses.course_start", maxToday]},
-                                                    { $gt: ["$courses.course_end", minToday]},
+                                                    { $lt: ["$courses.course_start", maxToday] },
+                                                    { $gt: ["$courses.course_end", minToday] },
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
                                             },
@@ -3165,9 +3205,9 @@ export default class SubjectController {
                                             {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
-                                                    { $eq: ["$poor_status", EnumConstant.ACTIVE ] },
-                                                    { $lt: ["$courses.course_start", maxToday]},
-                                                    { $gt: ["$courses.course_end", minToday]},
+                                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                                    { $lt: ["$courses.course_start", maxToday] },
+                                                    { $gt: ["$courses.course_end", minToday] },
                                                 ]
                                             },
                                             1,
@@ -3181,9 +3221,9 @@ export default class SubjectController {
                                             {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
-                                                    { $eq: ["$poor_status", EnumConstant.ACTIVE ] },
-                                                    { $lt: ["$courses.course_start", maxToday]},
-                                                    { $gt: ["$courses.course_end", minToday]},
+                                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                                    { $lt: ["$courses.course_start", maxToday] },
+                                                    { $gt: ["$courses.course_end", minToday] },
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
                                             },
@@ -3214,7 +3254,7 @@ export default class SubjectController {
                                                 $and: [
                                                     { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
                                                     // { $eq: ["$scholarship_status", EnumConstant.ACTIVE ] },
-                                                    { $lt: ["$courses.course_end", minToday]},
+                                                    { $lt: ["$courses.course_end", minToday] },
                                                     { $eq: ["$gender", EnumConstant.Gender.FEMALE] }
                                                 ]
                                             },
@@ -3241,10 +3281,10 @@ export default class SubjectController {
                                                             { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
                                                             // { $lte: ["$courses.course_start", maxToday]},
                                                             // { $gte: ["$courses.course_end", minToday] },
-                                                            { $lt: ["$courses.course_start", maxToday]},
-                                                            { $gt: ["$courses.course_end", minToday]},
+                                                            { $lt: ["$courses.course_start", maxToday] },
+                                                            { $gt: ["$courses.course_end", minToday] },
                                                             // { $eq: ["$scholarship_status", EnumConstant.ACTIVE] },
-                                                            { $gte: ["$request_timelines.createdAt", minToday]},
+                                                            { $gte: ["$request_timelines.createdAt", minToday] },
                                                             { $lte: ["$request_timelines.createdAt", maxToday] },
                                                         ]
                                                     },
@@ -3274,9 +3314,9 @@ export default class SubjectController {
                                                             // { $lte: ["$courses.course_start", maxToday]},
                                                             // { $gte: ["$courses.course_end", minToday]},
                                                             // { $eq: ["$scholarship_status", EnumConstant.ACTIVE] },
-                                                            { $lt: ["$courses.course_start", maxToday]},
-                                                            { $gt: ["$courses.course_end", minToday]},
-                                                            { $gte: ["$request_timelines.createdAt", minToday]},
+                                                            { $lt: ["$courses.course_start", maxToday] },
+                                                            { $gt: ["$courses.course_end", minToday] },
+                                                            { $gte: ["$request_timelines.createdAt", minToday] },
                                                             { $lte: ["$request_timelines.createdAt", maxToday] },
                                                             { $eq: ["$request_timelines._id", EnumConstant.ACTIVE] },
                                                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
@@ -3289,15 +3329,52 @@ export default class SubjectController {
                                         ]
                                     }
                                 },
-                                
-                            }
-                        },
-                        {
-                            $addFields: {
-                                internship: 0,
-                                internship_female: 0,
-                                employment: 0,
-                                employment_female: 0,
+                                internship: {
+                                    $sum: {
+                                        $cond: [
+                                            { $ifNull: ["$student_internships", false] },
+                                            1,
+                                            0
+                                        ]    
+                                    }
+                                },
+                                internship_female: {
+                                    $sum: {
+                                        $cond: [
+                                            {
+                                                $and: [
+                                                    { $ifNull: ["$student_internships", false] },
+                                                    { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                                                ]
+                                            },
+                                            1,
+                                            0
+                                        ]    
+                                    }
+                                },
+                                employment: {
+                                    $sum: {
+                                        $cond: [
+                                            { $ifNull: ["$student_occupations", false] },
+                                            1,
+                                            0
+                                        ]    
+                                    }
+                                },
+                                employment_female: {
+                                    $sum: {
+                                        $cond: [
+                                            {
+                                                $and: [
+                                                    { $ifNull: ["$student_occupations", false] },
+                                                    { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                                                ]
+                                            },
+                                            1,
+                                            0
+                                        ]    
+                                    }
+                                }
                             }
                         },
                         {
@@ -3706,6 +3783,46 @@ export default class SubjectController {
                                         },
                                     },
                                     { $unwind: { path: "$request_timelines" } },
+                                    {
+                                        $lookup: {
+                                            from: 'student_internships',
+                                            let: { id: "$_id" },
+                                            pipeline: [
+                                                {
+                                                    $match: {
+                                                        $expr: {
+                                                            $eq: ["$students", "$$id"],
+                                                        },
+                                                        status: EnumConstant.ACTIVE,
+                                                        start_date: { $lte: endDate },
+                                                    }
+                                                },
+                                                { $limit: 1},
+                                            ],
+                                            as: "student_internships"
+                                        },
+                                    },
+                                    { $unwind: { path: '$student_internships', preserveNullAndEmptyArrays: true } },
+                                    {
+                                        $lookup: {
+                                            from: 'student_occupations',
+                                            let: { id: "$_id" },
+                                            pipeline: [
+                                                {
+                                                    $match: {
+                                                        $expr: {
+                                                            $eq: ["$students", "$$id"],
+                                                        },
+                                                        status: EnumConstant.ACTIVE,
+                                                        has_job: EnumConstant.ACTIVE,
+                                                    }
+                                                },
+                                                { $limit: 1},
+                                            ],
+                                            as: "student_occupations"
+                                        },
+                                    },
+                                    { $unwind: { path: '$student_occupations', preserveNullAndEmptyArrays: true } },
                                 ],
                                 as: "students"
                             }
@@ -4053,18 +4170,62 @@ export default class SubjectController {
                             ]
                         }
                     },
+                    internship: {
+                        $sum: {
+                            $cond: [
+                                { $ifNull: ["$courses.students.student_internships",false] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    internship_female: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $ifNull: ["$courses.students.student_internships",false] },
+                                        { $eq: ["$courses.students.gender", EnumConstant.Gender.FEMALE] }
+                                    ]
+                                },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    employment: {
+                        $sum: {
+                            $cond: [
+                                { $ifNull: ["$courses.students.student_occupations",false] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    employment_female: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $ifNull: ["$courses.students.student_occupations",false] },
+                                        { $eq: ["$courses.students.gender", EnumConstant.Gender.FEMALE] }
+                                    ]
+                                },
+                                1,
+                                0
+                            ]
+                        }
+                    },
                 }
             },
-            {
-                $addFields: {
-                    internship: 0,
-                    internship_female: 0,
-                    employment: 0,
-                    employment_female: 0,
-                    // finish_studying: 0, //finish studying need to input by school, can't comare with timeline, since it doesn't have record
-                    // finish_studying_female: 0, 
-                }
-            },
+            // {
+            //     $addFields: {
+            //         internship: 0,
+            //         internship_female: 0,
+            //         employment: 0,
+            //         employment_female: 0,
+            //     }
+            // },
             {
                 $lookup: {
                     from: 'courses',

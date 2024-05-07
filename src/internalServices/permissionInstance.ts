@@ -28,17 +28,17 @@ export const upsertPermission = async () => {
 			{
 				$set: { name: Role.student.name,permissions: ObjectToArray(pStudent) },
 			}, { upsert: true }));
-		inserts.push(models.role.findOneAndUpdate({ _id: Role.verifier._id },
+		inserts.push(models.role.findOneAndUpdate({ _id: Role.training_dept._id },
 			{
-				$set: { name: Role.verifier.name,permissions: verifier() },
+				$set: { name: Role.training_dept.name,permissions: trainingDept() },
 			}, { upsert: true }));
 		inserts.push(models.role.findOneAndUpdate({ _id: Role.viewer._id },
 			{
 				$set: { name: Role.viewer.name,permissions: viewer() },
 			}, { upsert: true }));
-		inserts.push(models.role.findOneAndUpdate({ _id: Role.tvet._id },
+		inserts.push(models.role.findOneAndUpdate({ _id: Role.dgTVET._id },
 			{
-				$set: { name: Role.tvet.name,permissions: tvet() },
+				$set: { name: Role.dgTVET.name,permissions: dgTvet() },
 			}, { upsert: true }));
 		inserts.push(models.role.findOneAndUpdate({ _id: Role.teacher._id },
 			{
@@ -167,7 +167,7 @@ function teacher() {
 	];
 }
 
-function verifier() {
+function trainingDept() {
 	return [
 		...Object.values(pAdmin.account),
 		pAdmin.applyMajor.read,
@@ -189,7 +189,7 @@ function verifier() {
 		...Object.values(pAdmin.report),
 	]
 }
-function tvet() {
+function dgTvet() {
 	return [
 		...Object.values(pAdmin.account),
 		pAdmin.sector.read,
