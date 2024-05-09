@@ -118,7 +118,25 @@ export default [
             authorized_permissions: [pAdmin.report.adminDataStudentApply, pAdmin.report.adminDataApprovedCount ],
         }, async (req) => {
             let data: any = await controllers.reportData.filterData(req);
-            data.poor_status = [EnumConstant.ACTIVE]
+            data.poor_status = [EnumConstant.ACTIVE];
+            data.type_poverty_status = [
+                {
+                    _id: EnumConstant.TypePovertyStatus.POOR_1,
+                    name: "ក្រ១",
+                },
+                {
+                    _id: EnumConstant.TypePovertyStatus.POOR_2,
+                    name: "ក្រ២",
+                },
+                {
+                    _id: EnumConstant.TypePovertyStatus.NEAR_POOR,
+                    name: "ងាយរងហានិភ័យ",
+                },
+                {
+                    _id: EnumConstant.TypePovertyStatus.NOT_POOR,
+                    name: "ទូទៅ",
+                },
+            ]
             return data;
         }
     ),

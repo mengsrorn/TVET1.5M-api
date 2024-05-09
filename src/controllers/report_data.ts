@@ -328,6 +328,24 @@ export default class SubjectController {
             shifts: getShifts,
             apply_majors: getMajors,
             schools: getSchools,
+            type_poverty_status: [
+                {
+                    _id: EnumConstant.TypePovertyStatus.POOR_1,
+                    name: "ក្រ១",
+                },
+                {
+                    _id: EnumConstant.TypePovertyStatus.POOR_2,
+                    name: "ក្រ២",
+                },
+                {
+                    _id: EnumConstant.TypePovertyStatus.NEAR_POOR,
+                    name: "ងាយរងហានិភ័យ",
+                },
+                {
+                    _id: EnumConstant.TypePovertyStatus.NOT_POOR,
+                    name: "ទូទៅ",
+                },
+            ]
         }
     }
 
@@ -348,7 +366,7 @@ export default class SubjectController {
     } 
 
     async studentApplyBySchool(req: any) {
-        let { apply_majors, shifts, schools } = req.query;
+        let { apply_majors, shifts, schools, type_poverty_status } = req.query;
         let querySchool: any = {
             status: EnumConstant.ACTIVE
         }
@@ -376,6 +394,15 @@ export default class SubjectController {
             matchStudentCourse.courses = { $in: getCourses.map(item => item._id) };
         }
 
+        let matchPoor: any = {};
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
+        }
+
         let [startDate, endDate] = CommonUtil.parseStartDateEndDate(req.query.start_date, req.query.end_date);
 
         let data = await models.school.aggregate([
@@ -390,7 +417,8 @@ export default class SubjectController {
                         {
                             $match: {
                                 $expr: { $eq: ["$schools", "$$id"] },
-                                ...matchStudentCourse
+                                ...matchStudentCourse,
+                                ...matchPoor
                             }
                         },
                         {
@@ -726,7 +754,7 @@ export default class SubjectController {
     }
 
     async studentApplyBySchoolByMajor(req: any) {
-        let { apply_majors, shifts, schools } = req.query;
+        let { apply_majors, shifts, schools, type_poverty_status } = req.query;
         if (req.body._user.schools) {
             schools = req.body._user.schools;
         }
@@ -753,7 +781,14 @@ export default class SubjectController {
             })
             matchCourse._id = { $in: getCourses.map(item => item._id) };
         }
-
+        let matchPoor: any = {};
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
+        }
         let [startDate, endDate] = CommonUtil.parseStartDateEndDate(req.query.start_date, req.query.end_date);
         let data = await models.applyMajor.aggregate([
             {
@@ -779,6 +814,7 @@ export default class SubjectController {
                                     {
                                         $match: {
                                             $expr: { $eq: ["$courses", "$$id"] },
+                                            ...matchPoor
                                         }
                                     },
                                     {
@@ -1084,7 +1120,7 @@ export default class SubjectController {
     }
 
     async approvalStudentCount(req: any) {
-        let { apply_majors, shifts, schools } = req.query;
+        let { apply_majors, shifts, schools, type_poverty_status } = req.query;
         let querySchool: any = {
             status: EnumConstant.ACTIVE
         }
@@ -1111,7 +1147,14 @@ export default class SubjectController {
             })
             matchStudentCourse.courses = { $in: getCourses.map(item => item._id) };
         }
-
+        let matchPoor: any = {};
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
+        }
         let [startDate, endDate] = CommonUtil.parseStartDateEndDate(req.query.start_date, req.query.end_date);
         let data = await models.school.aggregate([
             {
@@ -1125,7 +1168,8 @@ export default class SubjectController {
                         {
                             $match: {
                                 $expr: { $eq: ["$schools", "$$id"] },
-                                ...matchStudentCourse
+                                ...matchStudentCourse,
+                                ...matchPoor
                             }
                         },
                         {
@@ -1478,7 +1522,7 @@ export default class SubjectController {
     }
 
     async approvalStudentByMajor(req: any) {
-        let { apply_majors, shifts, schools } = req.query;
+        let { apply_majors, shifts, schools, type_poverty_status } = req.query;
         if (req.body._user.schools) {
             schools = req.body._user.schools;
         }
@@ -1505,6 +1549,14 @@ export default class SubjectController {
             })
             matchCourse._id = { $in: getCourses.map(item => item._id) };
         }
+        let matchPoor: any = {};
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
+        }
         let [startDate, endDate] = CommonUtil.parseStartDateEndDate(req.query.start_date, req.query.end_date);
         let data = await models.applyMajor.aggregate([
             {
@@ -1530,6 +1582,7 @@ export default class SubjectController {
                                     {
                                         $match: {
                                             $expr: { $eq: ["$courses", "$$id"] },
+                                            ...matchPoor
                                         }
                                     },
                                     {
@@ -1864,7 +1917,7 @@ export default class SubjectController {
         }
     }
     async approvalStudentByCityProvince(req: any) {
-        let { apply_majors, shifts, schools } = req.query;
+        let { apply_majors, shifts, schools, type_poverty_status } = req.query;
         let querySchool: any = {
             status: EnumConstant.ACTIVE
         }
@@ -1891,7 +1944,14 @@ export default class SubjectController {
             })
             matchCourse._id = { $in: getCourses.map(item => item._id) };
         }
-    
+        let matchPoor: any = {};
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
+        }
         let [startDate, endDate] = CommonUtil.parseStartDateEndDate(req.query.start_date, req.query.end_date);
         let data = await models.school.aggregate([
             {
@@ -1932,6 +1992,7 @@ export default class SubjectController {
                                                 {
                                                     $match: {
                                                         $expr: { $eq: ["$courses", "$$id"] },
+                                                        ...matchPoor
                                                     }
                                                 },
                                                 {
@@ -2371,7 +2432,7 @@ export default class SubjectController {
     }
 
     async studentApplyByCityProvince(req: any) {
-        let { apply_majors, shifts, schools } = req.query;
+        let { apply_majors, shifts, schools, type_poverty_status } = req.query;
         let querySchool: any = {
             status: EnumConstant.ACTIVE
         }
@@ -2397,6 +2458,14 @@ export default class SubjectController {
                 select: "_id"
             })
             matchCourse._id = { $in: getCourses.map(item => item._id) };
+        }
+        let matchPoor: any = {};
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
         }
         let [startDate, endDate] = CommonUtil.parseStartDateEndDate(req.query.start_date, req.query.end_date);
         let data = await models.school.aggregate([
@@ -2438,6 +2507,7 @@ export default class SubjectController {
                                                 {
                                                     $match: {
                                                         $expr: { $eq: ["$courses", "$$id"] },
+                                                        ...matchPoor,
                                                     }
                                                 },
                                                 {
@@ -2838,7 +2908,7 @@ export default class SubjectController {
     }
 
     async studentStudyStatusBySchool(req: any) {
-        let { apply_majors, shifts, schools, poor_status } = req.query;
+        let { apply_majors, shifts, schools, poor_status, type_poverty_status } = req.query;
         let querySchool: any = {
             status: EnumConstant.ACTIVE
         }
@@ -2873,6 +2943,13 @@ export default class SubjectController {
             matchPoor.poor_status = Number(poor_status);
             // queryTimelineType = EnumConstant.TimelineType.IDPOOR;
         }
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
+        }
         let endDate = new Date(req.query.end_date);
         let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
         let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
@@ -2890,7 +2967,7 @@ export default class SubjectController {
                                 $expr: { $eq: ["$schools", "$$id"] },
                                 scholarship_status: { $in: [EnumConstant.ACTIVE, EnumConstant.QUIT] },
                                 ...matchPoor,
-                                ...matchCourse
+                                ...matchCourse,
                             }
                         },
                         {
@@ -3681,7 +3758,7 @@ export default class SubjectController {
     }
 
     async studentStudyStatusByMajor(req: any) {
-        let { apply_majors, shifts, schools, poor_status } = req.query;
+        let { apply_majors, shifts, schools, poor_status, type_poverty_status } = req.query;
         if (req.body._user.schools) {
             schools = req.body._user.schools;
         }
@@ -3696,6 +3773,13 @@ export default class SubjectController {
         if (poor_status) {
             matchPoor.poor_status = Number(poor_status);
             // queryTimelineType = EnumConstant.TimelineType.IDPOOR
+        }
+        if (type_poverty_status) {
+            if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
+                matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
+            } else {
+                matchPoor.type_poverty_status = type_poverty_status;
+            }
         }
         let matchCourse: any = {}
         if (shifts || schools) { 
@@ -4218,14 +4302,6 @@ export default class SubjectController {
                     },
                 }
             },
-            // {
-            //     $addFields: {
-            //         internship: 0,
-            //         internship_female: 0,
-            //         employment: 0,
-            //         employment_female: 0,
-            //     }
-            // },
             {
                 $lookup: {
                     from: 'courses',

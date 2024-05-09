@@ -49,6 +49,13 @@ export default class EnumConstant {
         scholarship: 1,
         SMS: 2,
     }
+
+    public static readonly TypePovertyStatus = {
+        POOR_1: "POOR_1", 
+        POOR_2: "POOR_2",
+        NEAR_POOR: "NEAR_POOR",
+        NOT_POOR: "NOT_POOR",
+    }
 }
 
 export const Role = {
