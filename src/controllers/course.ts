@@ -653,12 +653,25 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
   }
   async getDataFromDateRange(req: any) {
     const [skip, limit] = this.skipLimit(req);
-    const { start_date, end_date } = req.query;
+    const { schools, apply_majors, start_date, end_date } = req.query;
 
     const [startDate, endDate] = CommonUtil.parseStartDateEndDate(
       start_date,
       end_date
     );
+    let query: any = {
+      status: { $ne: EnumConstant.DELETE },
+    };
+
+    if (schools) {
+      query.schools = new ObjectId(schools);
+    }
+    if (apply_majors) {
+      query.apply_majors = new ObjectId(apply_majors);
+    }
+    if (req.body._user.schools) {
+      query.schools = new ObjectId(req.body._user.schools);
+    }
 
     startDate.setDate(startDate.getDate());
     endDate.setDate(endDate.getDate() + 1);
@@ -667,6 +680,7 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
       {
         $match: {
           $and: [
+            query,
             { course_start: { $gte: startDate } },
             { course_start: { $lte: endDate } },
           ],
