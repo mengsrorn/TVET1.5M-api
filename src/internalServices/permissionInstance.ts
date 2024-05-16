@@ -172,6 +172,7 @@ function trainingDept() {
 		...Object.values(pAdmin.account),
 		pAdmin.applyMajor.read,
 		pAdmin.course.read,
+		pAdmin.course.write,
 		pAdmin.staff.read,
 		pAdmin.student.readRequesting,
 		pAdmin.student.readApproved,
@@ -185,8 +186,12 @@ function trainingDept() {
 		pAdmin.school.read,
 		pAdmin.attendance.read,
 		pAdmin.attendanceSubmit.read,
+		pAdmin.attendanceSubmit.delete,
 		pAdmin.scholarshipPayment.read,
 		...Object.values(pAdmin.report),
+		pAdmin.adminAction.change_course_date,
+		pAdmin.student.resumeStudy,
+		pAdmin.shift.read,
 	]
 }
 function dgTvet() {
