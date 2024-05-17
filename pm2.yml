@@ -3,4 +3,4 @@ apps:
       name: ks-api
       instances: max
       exec_mode: cluster
-      watch : false
+      watch : false 
