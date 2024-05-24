@@ -96,6 +96,10 @@ export const Role = {
         _id: 12,
         name: "teacher",
     },
+    schoolDepartment: {
+        _id: 14,
+        name: "Department",
+    },
     student: {
         _id: 21,
         name: "student",

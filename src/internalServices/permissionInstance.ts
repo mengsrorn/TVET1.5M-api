@@ -44,6 +44,10 @@ export const upsertPermission = async () => {
 			{
 				$set: { name: Role.teacher.name,permissions: teacher() },
 			}, { upsert: true }));
+		inserts.push(models.role.findOneAndUpdate({ _id: Role.schoolDepartment._id },
+			{
+				$set: { name: Role.schoolDepartment.name,permissions: department() },
+			}, { upsert: true }));
 		inserts.push(models.role.findOneAndUpdate({ _id: Role.officer._id },
 			{
 				$set: { name: Role.officer.name,permissions: officer() },
@@ -154,9 +158,6 @@ function teacher() {
 		pAdmin.student.addPoorId,
 		pAdmin.poorStudent.read,
 		pAdmin.poorStudent.request,
-		// pAdmin.verifyStudent.read,
-		// pAdmin.verifyStudent.request,
-		// pAdmin.approvalInfoStudent.read,
 		pAdmin.school.read,
 		pAdmin.attendance.write,
 		pAdmin.attendance.read,
@@ -164,6 +165,31 @@ function teacher() {
 		pAdmin.scholarshipPayment.read,
 		pAdmin.sector.read,
 		pAdmin.shift.read,
+	];
+}
+function department() {
+	return [
+		...Object.values(pAdmin.account),
+		pAdmin.applyMajor.read,
+		pAdmin.course.read,
+		pAdmin.student.request,
+		pAdmin.student.readRequesting,
+		pAdmin.student.readApproved,
+		pAdmin.student.write,
+		pAdmin.student.apply,
+		pAdmin.student.read,
+		pAdmin.student.writeUser,
+		pAdmin.student.addPoorId,
+		pAdmin.poorStudent.read,
+		pAdmin.poorStudent.request,
+		pAdmin.school.read,
+		pAdmin.attendance.write,
+		pAdmin.attendance.read,
+		pAdmin.attendanceSubmit.read,
+		pAdmin.scholarshipPayment.read,
+		pAdmin.sector.read,
+		pAdmin.shift.read,
+		...Object.values(pAdmin.report),
 	];
 }
 
