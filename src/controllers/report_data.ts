@@ -6458,8 +6458,16 @@ export default class SubjectController {
   }
 
   async getWeeklyReport(req: any) {
-    let { apply_majors, shifts, schools, poor_status, type_poverty_status } =
-      req.query;
+    let {
+      apply_majors,
+      shifts,
+      schools,
+      poor_status,
+      type_poverty_status,
+      page,
+      limit,
+    } = req.query;
+
     if (req.body._user.schools) {
       schools = req.body._user.schools;
     }
@@ -6488,10 +6496,27 @@ export default class SubjectController {
     let currentDate = new Date(Date.now());
     let endDate = new Date(req.query.end_date);
     endDate.setDate(endDate.getDate() + 1);
+
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 100;
+
+    console.log(limit);
+
+    let skipCount = (page - 1) * limit;
+
+    let totalCount = await models.course.countDocuments(queryMajor);
+    console.log(typeof totalCount);
+
     let data = await models.course
       .aggregate([
         {
           $match: queryMajor,
+        },
+        {
+          $skip: skipCount,
+        },
+        {
+          $limit: limit,
         },
         {
           $lookup: {
@@ -6723,15 +6748,17 @@ export default class SubjectController {
             name_en: { $first: "$apply_majors.name_en" },
             code: { $first: "$apply_majors.code" },
             school: { $first: "$schools.name" },
+            course_start: { $first: "$course_start" },
+            course_end: { $first: "$course_end" },
             // Register Student
             total_student_register: {
               $sum: {
                 $cond: [
-                    {
-                      $lte: ["$students.createdAt", endDate],
-                    },
-                    1,
-                    0
+                  {
+                    $lte: ["$students.createdAt", endDate],
+                  },
+                  1,
+                  0,
                 ],
               },
             },
@@ -8865,10 +8892,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
@@ -8892,10 +8916,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
@@ -8919,10 +8940,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -8949,10 +8967,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -8982,10 +8997,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9015,10 +9027,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9045,10 +9054,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9078,10 +9084,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9111,10 +9114,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9141,10 +9141,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9174,10 +9171,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9207,10 +9201,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9237,10 +9228,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -9270,10 +9258,7 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $lt: [
-                          "$students.average_attendance",
-                          80,
-                        ],
+                        $lt: ["$students.average_attendance", 80],
                       },
                       {
                         $eq: [
@@ -11039,7 +11024,7 @@ export default class SubjectController {
       start_end: endDate,
       header_columns: headerColumns,
       report_data: jsonData,
-      // total_data: this.totalValue(headerColumns, jsonData),
+      total_count: totalCount,
     };
   }
 }
