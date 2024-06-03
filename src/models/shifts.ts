@@ -5,6 +5,7 @@ export interface IShifts extends Document {
     name_en: string;
     code: string;
     status: number;
+    fee: number;
 }
 
 const schema = new Schema({
@@ -12,6 +13,7 @@ const schema = new Schema({
     name: String,
     name_en: String,
     code: String,
+    fee:  Number,
 
 }, { timestamps: true});
  
