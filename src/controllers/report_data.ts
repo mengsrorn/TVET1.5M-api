@@ -403,11 +403,17 @@ export default class SubjectController {
     for (var j = 0; j < jsonData.length; j++) {
       jsonData[j].total_female = 0;
       jsonData[j].total_student = 0;
+      jsonData[j].total_course_finish = 0;
+      jsonData[j].total_new_course_finish = 0;
     }
     for (var i = 0; i < data.length; i++) {
       for (var j = 0; j < jsonData.length; j++) {
         jsonData[j].total_female += data[i].student_data[j].total_female;
         jsonData[j].total_student += data[i].student_data[j].total_student;
+        jsonData[j].total_course_finish +=
+          data[i].student_data[j].total_course_finish;
+        jsonData[j].total_new_course_finish +=
+          data[i].student_data[j].total_new_course_finish;
       }
     }
     return jsonData;
@@ -4171,9 +4177,20 @@ export default class SubjectController {
                         {
                           $and: [
                             {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.QUIT,
+                              $or: [
+                                {
+                                  $eq: [
+                                    "$request_timelines._id",
+                                    EnumConstant.QUIT,
+                                  ],
+                                },
+                                {
+                                  $eq: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
                               ],
                             },
                             {
@@ -4208,9 +4225,20 @@ export default class SubjectController {
                         {
                           $and: [
                             {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.QUIT,
+                              $or: [
+                                {
+                                  $eq: [
+                                    "$request_timelines._id",
+                                    EnumConstant.QUIT,
+                                  ],
+                                },
+                                {
+                                  $eq: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
                               ],
                             },
                             {
@@ -4221,13 +4249,13 @@ export default class SubjectController {
                               ],
                             },
                             {
-                              $lt: [
+                              $lte: [
                                 "$courses.course_start",
                                 "$request_timelines.createdAt",
                               ],
                             },
                             {
-                              $gt: [
+                              $gte: [
                                 "$courses.course_end",
                                 "$request_timelines.createdAt",
                               ],
@@ -4508,6 +4536,13 @@ export default class SubjectController {
                             },
                             // { $eq: ["$scholarship_status", EnumConstant.ACTIVE] },
                             { $lt: ["$courses.course_end", minToday] },
+                            {
+                              $ne: [
+                                "$type_leavel_scholarships",
+                                controllers.typeLeaveScholarship.status
+                                  .LEAVE_BEFORE_EVALUATE,
+                              ],
+                            },
                           ],
                         },
                         1,
@@ -4528,6 +4563,13 @@ export default class SubjectController {
                             },
                             // { $eq: ["$scholarship_status", EnumConstant.ACTIVE ] },
                             { $lt: ["$courses.course_end", minToday] },
+                            {
+                              $ne: [
+                                "$type_leavel_scholarships",
+                                controllers.typeLeaveScholarship.status
+                                  .LEAVE_BEFORE_EVALUATE,
+                              ],
+                            },
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
@@ -4688,6 +4730,180 @@ export default class SubjectController {
                           ],
                         },
                         1,
+                        0,
+                      ],
+                    },
+                  },
+                  new_internship: {
+                    $sum: {
+                      $cond: [
+                        { $ifNull: ["$student_internships", false] },
+                        {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $lte: [
+                                    "$student_internships.createdAt",
+                                    maxToday,
+                                  ],
+                                },
+                                {
+                                  $gte: [
+                                    "$student_internships.createdAt",
+                                    minToday,
+                                  ],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  new_internship_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $ifNull: ["$student_internships", false] },
+                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                          ],
+                        },
+                        {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $lte: [
+                                    "$student_internships.createdAt",
+                                    maxToday,
+                                  ],
+                                },
+                                {
+                                  $gte: [
+                                    "$student_internships.createdAt",
+                                    minToday,
+                                  ],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  new_finish_studying: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $eq: ["$request_timelines._id", EnumConstant.ACTIVE],
+                        },
+                        {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $ne: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
+                                { $gte: ["$courses.course_end", minToday] },
+                                { $lte: ["$courses.course_end", maxToday] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  new_finish_studying_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$request_timelines._id",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                          ],
+                        },
+                        {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $ne: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
+                                { $gte: ["$courses.course_end", minToday] },
+                                { $lte: ["$courses.course_end", maxToday] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  new_employment: {
+                    $sum: {
+                      $cond: [
+                        { $ifNull: ["$student_occupations", false] },
+                        {
+                          $cond: [
+                            {
+                              $and: [
+                                { $gte: ["$courses.course_end", minToday] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  new_employment_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $ifNull: ["$student_occupations", false] },
+                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                          ],
+                        },
+                        {
+                          $cond: [
+                            {
+                              $and: [
+                                { $gte: ["$courses.course_end", minToday] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4881,6 +5097,60 @@ export default class SubjectController {
                 0,
               ],
             },
+            new_internship: {
+              $cond: [
+                {
+                  $ifNull: ["$new_internship", false],
+                },
+                "$new_internship",
+                0,
+              ],
+            },
+            new_internship_female: {
+              $cond: [
+                {
+                  $ifNull: ["$new_internship_female", false],
+                },
+                "$new_internship_female",
+                0,
+              ],
+            },
+            new_finish_studying: {
+              $cond: [
+                {
+                  $ifNull: ["$new_finish_studying", false],
+                },
+                "$new_finish_studying",
+                0,
+              ],
+            },
+            new_finish_studying_female: {
+              $cond: [
+                {
+                  $ifNull: ["$new_finish_studying_female", false],
+                },
+                "$new_finish_studying_female",
+                0,
+              ],
+            },
+            new_employment: {
+              $cond: [
+                {
+                  $ifNull: ["$new_employment", false],
+                },
+                "$new_employment",
+                0,
+              ],
+            },
+            new_employment_female: {
+              $cond: [
+                {
+                  $ifNull: ["$new_employment_female", false],
+                },
+                "$new_employment_female",
+                0,
+              ],
+            },
           },
         },
         {
@@ -4931,6 +5201,31 @@ export default class SubjectController {
                       ],
                     },
                   },
+                  course_finish: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [{ $lt: ["$course_end", minToday] }],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  new_course_finish: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $gte: ["$course_end", minToday] },
+                            { $lte: ["$course_end", maxToday] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
                 },
               },
             ],
@@ -4953,6 +5248,20 @@ export default class SubjectController {
               $cond: [
                 { $ifNull: ["$courses.course_studying", false] },
                 "$courses.course_studying",
+                0,
+              ],
+            },
+            course_finish: {
+              $cond: [
+                { $ifNull: ["$courses.course_finish", false] },
+                "$courses.course_finish",
+                0,
+              ],
+            },
+            new_course_finish: {
+              $cond: [
+                { $ifNull: ["$courses.new_course_finish", false] },
+                "$courses.new_course_finish",
                 0,
               ],
             },
@@ -5006,6 +5315,30 @@ export default class SubjectController {
             },
             quit_during_studying_not_enough_document_female: {
               $sum: "$quit_during_studying_not_enough_document_female",
+            },
+            new_internship: {
+              $sum: "$new_internship",
+            },
+            new_internship_female: {
+              $sum: "$new_internship_female",
+            },
+            new_finish_studying: {
+              $sum: "$new_finish_studying",
+            },
+            new_finish_studying_female: {
+              $sum: "$new_finish_studying_female",
+            },
+            new_course_finish: {
+              $sum: "$new_course_finish",
+            },
+            course_finish: {
+              $sum: "$course_finish",
+            },
+            new_employment: {
+              $sum: "$new_employment",
+            },
+            new_employment_female: {
+              $sum: "$new_employment_female",
             },
           },
         },
@@ -5077,6 +5410,14 @@ export default class SubjectController {
       "id_poor_studying_female",
       "quit_during_studying_not_enough_document_female",
       "quit_during_studying_not_enough_document",
+      "new_internship",
+      "new_internship_female",
+      "new_finish_studying",
+      "new_finish_studying_female",
+      "new_employment",
+      "new_employment_female",
+      "new_course_finish",
+      "course_finish",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
@@ -5088,9 +5429,12 @@ export default class SubjectController {
       "កំពុងរៀន",
       "បោះបង់ពេលរៀន",
       "បោះបង់ពេលរៀនខ្វះឯកសារ",
+      "កម្មសិក្សាថ្មីថ្ងៃនេះ",
       "កម្មសិក្សា",
       "បានបញ្ចប់ការសិក្សា",
       "ទទួលបានការងារ",
+      "បានបញ្ចប់ការសិក្សាថ្មីថ្ងៃនេះ",
+      "ទទួលបានការងារថ្មីថ្ងៃនេះ",
       "វគ្គសិក្សា",
     ];
     for (var i = 0; i < headerTitle.length; i++) {
@@ -5143,24 +5487,42 @@ export default class SubjectController {
         });
         studentData.push({
           _id: 9,
+          total_student: sch.new_internship,
+          total_female: sch.new_internship_female,
+        });
+        studentData.push({
+          _id: 10,
           total_student: sch.internship,
           total_female: sch.internship_female,
         });
         studentData.push({
-          _id: 10,
+          _id: 11,
           total_student: sch.finish_studying,
           total_female: sch.finish_studying_female,
+          total_course_finish: sch.course_finish,
         });
         studentData.push({
-          _id: 11,
+          _id: 12,
           total_student: sch.employment,
           total_female: sch.employment_female,
         });
         studentData.push({
-          _id: 12,
+          _id: 13,
+          total_student: sch.new_finish_studying,
+          total_female: sch.new_finish_studying_female,
+          total_new_course_finish: sch.new_course_finish,
+        });
+        studentData.push({
+          _id: 14,
+          total_student: sch.new_employment,
+          total_female: sch.new_employment_female,
+        });
+        studentData.push({
+          _id: 15,
           total_student: sch.course_studying,
           total_female: sch.course_new,
         });
+
         jsonData[i].schools[school].student_data = studentData;
         jsonData[i].schools[school] = CommonUtil.removeKeys(
           jsonData[i].schools[school],
@@ -5212,27 +5574,46 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 9,
+        total_student: city.new_internship,
+        total_female: city.new_internship_female,
+      });
+      studentData.push({
+        _id: 10,
         total_student: city.internship,
         total_female: city.internship_female,
       });
       studentData.push({
-        _id: 10,
+        _id: 11,
         total_student: city.finish_studying,
         total_female: city.finish_studying_female,
+        total_course_finish: city.course_finish,
       });
       studentData.push({
-        _id: 11,
+        _id: 12,
         total_student: city.employment,
         total_female: city.employment_female,
       });
       studentData.push({
-        _id: 12,
+        _id: 13,
+        total_student: city.new_finish_studying,
+        total_female: city.new_finish_studying_female,
+        total_new_course_finish: city.new_course_finish,
+      });
+      studentData.push({
+        _id: 14,
+        total_student: city.new_employment,
+        total_female: city.new_employment_female,
+      });
+      studentData.push({
+        _id: 15,
         total_student: city.course_studying,
         total_female: city.course_new,
       });
       jsonData[i].student_data = studentData;
       jsonData[i] = CommonUtil.removeKeys(jsonData[i], keyToRemove);
     }
+    console.log(jsonData[0]);
+
     return {
       // start_date: startDate,
       // start_end: endDate,
@@ -5514,16 +5895,27 @@ export default class SubjectController {
                   {
                     $and: [
                       {
+                        $or: [
+                          {
+                            $eq: [
+                              "$courses.students.request_timelines._id",
+                              EnumConstant.QUIT,
+                            ],
+                          },
+                          {
+                            $eq: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
+                        ],
+                      },
+                      {
                         $ne: [
                           "$courses.students.type_leavel_scholarships",
                           controllers.typeLeaveScholarship.status
                             .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.QUIT,
                         ],
                       },
                       {
@@ -5551,16 +5943,27 @@ export default class SubjectController {
                   {
                     $and: [
                       {
+                        $or: [
+                          {
+                            $eq: [
+                              "$courses.students.request_timelines._id",
+                              EnumConstant.QUIT,
+                            ],
+                          },
+                          {
+                            $eq: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
+                        ],
+                      },
+                      {
                         $ne: [
                           "$courses.students.type_leavel_scholarships",
                           controllers.typeLeaveScholarship.status
                             .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.QUIT,
                         ],
                       },
                       {
@@ -5900,6 +6303,13 @@ export default class SubjectController {
                         ],
                       },
                       { $lt: ["$courses.course_end", minToday] },
+                      {
+                        $ne: [
+                          "$courses.students.type_leavel_scholarships",
+                          controllers.typeLeaveScholarship.status
+                            .LEAVE_BEFORE_EVALUATE,
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -5919,6 +6329,13 @@ export default class SubjectController {
                         ],
                       },
                       { $lt: ["$courses.course_end", minToday] },
+                      {
+                        $ne: [
+                          "$courses.students.type_leavel_scholarships",
+                          controllers.typeLeaveScholarship.status
+                            .LEAVE_BEFORE_EVALUATE,
+                        ],
+                      },
                       {
                         $eq: [
                           "$courses.students.gender",
@@ -6106,6 +6523,204 @@ export default class SubjectController {
                 ],
               },
             },
+            new_internship: {
+              $sum: {
+                $cond: [
+                  { $ifNull: ["$courses.students.student_internships", false] },
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $lte: [
+                              "$courses.students.student_internships.createdAt",
+                              maxToday,
+                            ],
+                          },
+                          {
+                            $gte: [
+                              "$courses.students.student_internships.createdAt",
+                              minToday,
+                            ],
+                          },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+            new_internship_female: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $ifNull: [
+                          "$courses.students.student_internships",
+                          false,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$courses.students.gender",
+                          EnumConstant.Gender.FEMALE,
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $lte: [
+                              "$courses.students.student_internships.createdAt",
+                              maxToday,
+                            ],
+                          },
+                          {
+                            $gte: [
+                              "$courses.students.student_internships.createdAt",
+                              minToday,
+                            ],
+                          },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+            new_finish_studying: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$courses.students.request_timelines._id",
+                      EnumConstant.ACTIVE,
+                    ],
+                  },
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $ne: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
+                          { $gte: ["$courses.course_end", minToday] },
+                          { $lte: ["$courses.course_end", maxToday] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+            new_finish_studying_female: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$courses.students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$courses.students.gender",
+                          EnumConstant.Gender.FEMALE,
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $ne: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
+                          { $gte: ["$courses.course_end", minToday] },
+                          { $lte: ["$courses.course_end", maxToday] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+            new_employment: {
+              $sum: {
+                $cond: [
+                  { $ifNull: ["$courses.students.student_occupations", false] },
+                  {
+                    $cond: [
+                      {
+                        $and: [{ $gte: ["$courses.course_end", minToday] }],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+            new_employment_female: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $ifNull: [
+                          "$courses.students.student_occupations",
+                          false,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$courses.students.gender",
+                          EnumConstant.Gender.FEMALE,
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      {
+                        $and: [{ $gte: ["$courses.course_end", minToday] }],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
           },
         },
         {
@@ -6151,6 +6766,31 @@ export default class SubjectController {
                       ],
                     },
                   },
+                  course_finish: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [{ $lt: ["$course_end", minToday] }],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  new_course_finish: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $gte: ["$course_end", minToday] },
+                            { $lte: ["$course_end", maxToday] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
                 },
               },
             ],
@@ -6173,6 +6813,20 @@ export default class SubjectController {
               $cond: [
                 { $ifNull: ["$courses.course_studying", false] },
                 "$courses.course_studying",
+                0,
+              ],
+            },
+            course_finish: {
+              $cond: [
+                { $ifNull: ["$courses.course_finish", false] },
+                "$courses.course_finish",
+                0,
+              ],
+            },
+            new_course_finish: {
+              $cond: [
+                { $ifNull: ["$courses.new_course_finish", false] },
+                "$courses.new_course_finish",
                 0,
               ],
             },
@@ -6223,6 +6877,30 @@ export default class SubjectController {
             new_study_female: { $sum: "$new_study_female" },
             course_new: { $sum: "$course_new" },
             course_studying: { $sum: "$course_studying" },
+            new_internship: {
+              $sum: "$new_internship",
+            },
+            new_internship_female: {
+              $sum: "$new_internship_female",
+            },
+            new_finish_studying: {
+              $sum: "$new_finish_studying",
+            },
+            new_finish_studying_female: {
+              $sum: "$new_finish_studying_female",
+            },
+            new_course_finish: {
+              $sum: "$new_course_finish",
+            },
+            course_finish: {
+              $sum: "$course_finish",
+            },
+            new_employment: {
+              $sum: "$new_employment",
+            },
+            new_employment_female: {
+              $sum: "$new_employment_female",
+            },
           },
         },
         {
@@ -6290,6 +6968,14 @@ export default class SubjectController {
       "new_study",
       "new_waiting_studying",
       "new_waiting_studying_female",
+      "new_internship",
+      "new_internship_female",
+      "new_finish_studying",
+      "new_finish_studying_female",
+      "new_employment",
+      "new_employment_female",
+      "new_course_finish",
+      "course_finish",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
@@ -6301,9 +6987,12 @@ export default class SubjectController {
       "កំពុងរៀន",
       "បោះបង់ពេលរៀន",
       "បោះបង់ពេលរៀនខ្វះឯកសារ",
+      "កម្មសិក្សាថ្មីថ្ងៃនេះ",
       "កម្មសិក្សា",
       "បានបញ្ចប់ការសិក្សា",
       "ទទួលបានការងារ",
+      "បានបញ្ចប់ការសិក្សាថ្មីថ្ងៃនេះ",
+      "ទទួលបានការងារថ្មីថ្ងៃនេះ",
       "វគ្គសិក្សា",
     ]; //,"កំពុងរៀន(មានប័ណ្ណ)"
     for (var i = 0; i < headerTitle.length; i++) {
@@ -6356,24 +7045,42 @@ export default class SubjectController {
         });
         studentData.push({
           _id: 9,
+          total_student: sch.new_internship,
+          total_female: sch.new_internship_female,
+        });
+        studentData.push({
+          _id: 10,
           total_student: sch.internship,
           total_female: sch.internship_female,
         });
         studentData.push({
-          _id: 10,
+          _id: 11,
           total_student: sch.finish_studying,
           total_female: sch.finish_studying_female,
+          total_course_finish: sch.course_finish,
         });
         studentData.push({
-          _id: 11,
+          _id: 12,
           total_student: sch.employment,
           total_female: sch.employment_female,
         });
         studentData.push({
-          _id: 12,
+          _id: 13,
+          total_student: sch.new_finish_studying,
+          total_female: sch.new_finish_studying_female,
+          total_new_course_finish: sch.new_course_finish,
+        });
+        studentData.push({
+          _id: 14,
+          total_student: sch.new_employment,
+          total_female: sch.new_employment_female,
+        });
+        studentData.push({
+          _id: 15,
           total_student: sch.course_studying,
           total_female: sch.course_new,
         });
+
         jsonData[i].apply_majors[major].student_data = studentData;
         jsonData[i].apply_majors[major] = CommonUtil.removeKeys(
           jsonData[i].apply_majors[major],
@@ -6425,21 +7132,38 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 9,
+        total_student: city.new_internship,
+        total_female: city.new_internship_female,
+      });
+      studentData.push({
+        _id: 10,
         total_student: city.internship,
         total_female: city.internship_female,
       });
       studentData.push({
-        _id: 10,
+        _id: 11,
         total_student: city.finish_studying,
         total_female: city.finish_studying_female,
+        total_course_finish: city.course_finish,
       });
       studentData.push({
-        _id: 11,
+        _id: 12,
         total_student: city.employment,
         total_female: city.employment_female,
       });
       studentData.push({
-        _id: 12,
+        _id: 13,
+        total_student: city.new_finish_studying,
+        total_female: city.new_finish_studying_female,
+        total_new_course_finish: city.new_course_finish,
+      });
+      studentData.push({
+        _id: 14,
+        total_student: city.new_employment,
+        total_female: city.new_employment_female,
+      });
+      studentData.push({
+        _id: 15,
         total_student: city.course_studying,
         total_female: city.course_new,
       });
@@ -6468,7 +7192,7 @@ export default class SubjectController {
     } = req.query;
 
     let query: any = {
-      status: {$ne : EnumConstant.DELETE },
+      status: { $ne: EnumConstant.DELETE },
     };
     if (apply_majors) {
       query._id = new ObjectId(apply_majors);

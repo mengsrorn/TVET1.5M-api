@@ -24,6 +24,7 @@ export default class SubjectController extends AbstractController<IType_leave_sc
         FAKE_DOCUMENT: 4,
         SUPPEND:5,
         NOT_ENOUGH_DOCUMENT: 6,
+        LEAVE_BEFORE_EVALUATE : 7,
     }
 
 }
