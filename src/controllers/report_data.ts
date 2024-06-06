@@ -7222,7 +7222,6 @@ export default class SubjectController {
     let currentDate = new Date(Date.now());
 
     let endDate = new Date(req.query.end_date);
-    endDate.setDate(endDate.getDate() + 1);
 
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 100;
@@ -7490,7 +7489,10 @@ export default class SubjectController {
               $sum: {
                 $cond: [
                   {
-                    $lte: ["$students.createdAt", endDate],
+                    $and: [
+                      { $lte: ["$students.createdAt", endDate] },
+                      { $ifNull: ["$students", false] },
+                    ],
                   },
                   1,
                   0,
@@ -7739,7 +7741,25 @@ export default class SubjectController {
             },
             total_student_not_poor_register: {
               $sum: {
-                $cond: [{ $ifNull: ["$students.poor_id", false] }, 0, 1],
+                $cond: [
+                  { $ifNull: ["$students.poor_id", false] },
+                  0,
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $lte: ["$students.createdAt", endDate],
+                          },
+                          { $ifNull: ["$students", false] },
+                        ],
+                      },
+
+                      1,
+                      0,
+                    ],
+                  },
+                ],
               },
             },
             student_female_not_poor_register: {
@@ -8243,7 +8263,16 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $lte: ["$students.createdAt", endDate],
+                      },
+                      {
+                        $ifNull: ["$students", false]
                       },
                     ],
                   },
@@ -8261,6 +8290,12 @@ export default class SubjectController {
                         $ne: [
                           "$students.scholarship_status",
                           EnumConstant.REQUESTING,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
                         ],
                       },
                       {
@@ -8285,6 +8320,12 @@ export default class SubjectController {
                         $ne: [
                           "$students.scholarship_status",
                           EnumConstant.REQUESTING,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
                         ],
                       },
                       {
@@ -8318,6 +8359,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $lte: ["$students.createdAt", endDate],
                       },
                     ],
@@ -8342,6 +8389,12 @@ export default class SubjectController {
                         $ne: [
                           "$students.scholarship_status",
                           EnumConstant.REQUESTING,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
                         ],
                       },
                       {
@@ -8375,6 +8428,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
                       },
                       {
@@ -8405,6 +8464,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $lte: ["$students.createdAt", endDate],
                       },
                     ],
@@ -8429,6 +8494,12 @@ export default class SubjectController {
                         $ne: [
                           "$students.scholarship_status",
                           EnumConstant.REQUESTING,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
                         ],
                       },
                       {
@@ -8462,6 +8533,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
                       },
                       {
@@ -8492,6 +8569,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $lte: ["$students.createdAt", endDate],
                       },
                     ],
@@ -8516,6 +8599,12 @@ export default class SubjectController {
                         $ne: [
                           "$students.scholarship_status",
                           EnumConstant.REQUESTING,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
                         ],
                       },
                       {
@@ -8549,6 +8638,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.scholarship_status",
+                          EnumConstant.REJECTED,
+                        ],
+                      },
+                      {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
                       },
                       {
@@ -8577,8 +8672,15 @@ export default class SubjectController {
                             ],
                           },
                           {
+                            $ne: [
+                              "$students.scholarship_status",
+                              EnumConstant.REJECTED,
+                            ],
+                          },
+                          {
                             $lte: ["$students.createdAt", endDate],
                           },
+                          { $ifNull: ["$students", false] },
                         ],
                       },
                       1,
@@ -8604,11 +8706,18 @@ export default class SubjectController {
                             ],
                           },
                           {
+                            $ne: [
+                              "$students.scholarship_status",
+                              EnumConstant.REJECTED,
+                            ],
+                          },
+                          {
                             $eq: [
                               "$students.gender",
                               EnumConstant.Gender.FEMALE,
                             ],
                           },
+                          { $ifNull: ["$students", false] },
                           {
                             $lte: ["$students.createdAt", endDate],
                           },
@@ -8637,11 +8746,18 @@ export default class SubjectController {
                             ],
                           },
                           {
+                            $ne: [
+                              "$students.scholarship_status",
+                              EnumConstant.REJECTED,
+                            ],
+                          },
+                          {
                             $eq: ["$students.gender", EnumConstant.Gender.MALE],
                           },
                           {
                             $lte: ["$students.createdAt", endDate],
                           },
+                          { $ifNull: ["$students", false] },
                         ],
                       },
                       1,
@@ -8666,9 +8782,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8703,9 +8819,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8743,9 +8859,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8789,9 +8905,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8832,9 +8948,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8878,9 +8994,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8924,9 +9040,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -8967,9 +9083,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -9013,9 +9129,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -9059,9 +9175,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -9102,9 +9218,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -9148,9 +9264,9 @@ export default class SubjectController {
                         ],
                       },
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.QUIT,
+                          [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                         ],
                       },
                       {
@@ -9184,6 +9300,7 @@ export default class SubjectController {
                     $cond: [
                       {
                         $and: [
+                          { $ifNull: ["$students", false] },
                           {
                             $ne: [
                               "$students.type_leavel_scholarships",
@@ -9192,9 +9309,9 @@ export default class SubjectController {
                             ],
                           },
                           {
-                            $eq: [
+                            $in: [
                               "$students.request_timelines._id",
-                              EnumConstant.QUIT,
+                              [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                             ],
                           },
                           {
@@ -9227,6 +9344,8 @@ export default class SubjectController {
                     $cond: [
                       {
                         $and: [
+                          { $ifNull: ["$students", false] },
+
                           {
                             $ne: [
                               "$students.type_leavel_scholarships",
@@ -9235,9 +9354,9 @@ export default class SubjectController {
                             ],
                           },
                           {
-                            $eq: [
+                            $in: [
                               "$students.request_timelines._id",
-                              EnumConstant.QUIT,
+                              [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                             ],
                           },
                           {
@@ -9276,6 +9395,8 @@ export default class SubjectController {
                     $cond: [
                       {
                         $and: [
+                          { $ifNull: ["$students", false] },
+
                           {
                             $ne: [
                               "$students.type_leavel_scholarships",
@@ -9284,9 +9405,9 @@ export default class SubjectController {
                             ],
                           },
                           {
-                            $eq: [
+                            $in: [
                               "$students.request_timelines._id",
-                              EnumConstant.QUIT,
+                              [EnumConstant.QUIT,controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE],
                             ],
                           },
                           {
@@ -10141,12 +10262,20 @@ export default class SubjectController {
             // Internship
             total_internship: {
               $sum: {
-                $cond: [
-                  { $ifNull: ["$students.student_internships", false] },
-                  1,
-                  0,
-                ],
-              },
+    
+                    $cond : [
+                      {
+                        $and : [
+                          { $ifNull: ["$students.student_internships", false] },
+                          {
+                            $gt: ["$students.student_internships.end_date", maxToday],
+                          },
+                        ]
+                      },
+                      1,
+                      0,
+                    ]
+                  },
             },
             total_internship_female: {
               $sum: {
@@ -10154,6 +10283,9 @@ export default class SubjectController {
                   {
                     $and: [
                       { $ifNull: ["$students.student_internships", false] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                       { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
                     ],
                   },
@@ -10168,6 +10300,9 @@ export default class SubjectController {
                   {
                     $and: [
                       { $ifNull: ["$students.student_internships", false] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                       { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
                     ],
                   },
@@ -10187,6 +10322,9 @@ export default class SubjectController {
                           "$students.type_poverty_status",
                           EnumConstant.TypePovertyStatus.POOR_1,
                         ],
+                      },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
                       },
                     ],
                   },
@@ -10208,6 +10346,10 @@ export default class SubjectController {
                         ],
                       },
                       { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
+
                     ],
                   },
                   1,
@@ -10228,6 +10370,9 @@ export default class SubjectController {
                         ],
                       },
                       { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                     ],
                   },
                   1,
@@ -10246,6 +10391,9 @@ export default class SubjectController {
                           "$students.type_poverty_status",
                           EnumConstant.TypePovertyStatus.POOR_2,
                         ],
+                      },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
                       },
                     ],
                   },
@@ -10267,6 +10415,9 @@ export default class SubjectController {
                         ],
                       },
                       { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                     ],
                   },
                   1,
@@ -10287,6 +10438,9 @@ export default class SubjectController {
                         ],
                       },
                       { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                     ],
                   },
                   1,
@@ -10305,6 +10459,9 @@ export default class SubjectController {
                           "$students.type_poverty_status",
                           EnumConstant.TypePovertyStatus.NEAR_POOR,
                         ],
+                      },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
                       },
                     ],
                   },
@@ -10326,6 +10483,9 @@ export default class SubjectController {
                         ],
                       },
                       { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                     ],
                   },
                   1,
@@ -10346,6 +10506,9 @@ export default class SubjectController {
                         ],
                       },
                       { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                      {
+                        $gt: ["$students.student_internships.end_date", maxToday],
+                      },
                     ],
                   },
                   1,
@@ -10360,10 +10523,17 @@ export default class SubjectController {
                   0,
                   {
                     $cond: [
-                      { $ifNull: ["$students.student_internships", false] },
+                      {
+                        $and : [
+                          { $ifNull: ["$students.student_internships", false] },
+                          {
+                            $gt: ["$students.student_internships.end_date", maxToday],
+                          },
+                        ]
+                      },
                       1,
-                      0,
-                    ],
+                      0,                  
+                    ]
                   },
                 ],
               },
@@ -10384,6 +10554,9 @@ export default class SubjectController {
                               EnumConstant.Gender.FEMALE,
                             ],
                           },
+                          {
+                            $gt: ["$students.student_internships.end_date", maxToday],
+                          },
                         ],
                       },
                       1,
@@ -10403,17 +10576,16 @@ export default class SubjectController {
                       {
                         $and: [
                           { $ifNull: ["$students.student_internships", false] },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                        ],
+                          { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                          { $gt: ["$students.student_internships.end_date", maxToday] }
+                        ]
                       },
                       1,
-                      0,
-                    ],
-                  },
-                ],
-              },
+                      0
+                    ]
+                  }
+                ]
+              }
             },
 
             // Pass exam student
@@ -10710,9 +10882,7 @@ export default class SubjectController {
                           "$school_score",
                         ],
                       },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
+                
                     ],
                   },
                   1,
@@ -10898,6 +11068,12 @@ export default class SubjectController {
                           EnumConstant.ACTIVE,
                         ],
                       },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                       { $lt: ["$course_end", currentDate] },
                     ],
                   },
@@ -10921,6 +11097,12 @@ export default class SubjectController {
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
                       },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -10942,6 +11124,12 @@ export default class SubjectController {
                       { $lt: ["$course_end", currentDate] },
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                      },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
                       },
                     ],
                   },
@@ -10968,6 +11156,12 @@ export default class SubjectController {
                         ],
                       },
                       { $lt: ["$course_end", currentDate] },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -10984,6 +11178,12 @@ export default class SubjectController {
                         $eq: [
                           "$students.type_poverty_status",
                           EnumConstant.TypePovertyStatus.POOR_1,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
                         ],
                       },
                       {
@@ -11015,6 +11215,12 @@ export default class SubjectController {
                         ],
                       },
                       {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
+                      {
                         $eq: [
                           "$students.request_timelines._id",
                           EnumConstant.ACTIVE,
@@ -11040,6 +11246,12 @@ export default class SubjectController {
                         $eq: [
                           "$students.type_poverty_status",
                           EnumConstant.TypePovertyStatus.POOR_2,
+                        ],
+                      },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
                         ],
                       },
                       {
@@ -11077,6 +11289,12 @@ export default class SubjectController {
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
                       },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -11105,6 +11323,12 @@ export default class SubjectController {
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
                       },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -11130,6 +11354,12 @@ export default class SubjectController {
                         ],
                       },
                       { $lt: ["$course_end", currentDate] },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -11157,6 +11387,12 @@ export default class SubjectController {
                       { $lt: ["$course_end", currentDate] },
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                      },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
                       },
                     ],
                   },
@@ -11186,6 +11422,12 @@ export default class SubjectController {
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
                       },
+                      {
+                        $ne: [
+                          "$students.request_timelines._id",
+                         controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                        ],
+                      },
                     ],
                   },
                   1,
@@ -11209,6 +11451,12 @@ export default class SubjectController {
                             ],
                           },
                           { $lt: ["$course_end", currentDate] },
+                          {
+                            $ne: [
+                              "$students.request_timelines._id",
+                             controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                            ],
+                          },
                         ],
                       },
 
@@ -11241,6 +11489,12 @@ export default class SubjectController {
                               EnumConstant.Gender.FEMALE,
                             ],
                           },
+                          {
+                            $ne: [
+                              "$students.request_timelines._id",
+                             controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                            ],
+                          },
                         ],
                       },
 
@@ -11269,6 +11523,12 @@ export default class SubjectController {
                           { $lt: ["$course_end", currentDate] },
                           {
                             $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                          },
+                          {
+                            $ne: [
+                              "$students.request_timelines._id",
+                             controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE
+                            ],
                           },
                         ],
                       },
