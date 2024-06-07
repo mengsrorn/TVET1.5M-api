@@ -206,6 +206,9 @@ export default class SubjectController {
             schools: 1,
             phone_number: 1,
             apply_majors: 1,
+            courses_end: "$courses.course_end",
+            courses_start: "$courses.course_start",
+            courses_code: "$courses.code",
             shifts: 1,
             scholarship_status: 1,
             type_poverty_status: 1,
@@ -11992,7 +11995,7 @@ export default class SubjectController {
     let headerTitle: any = [
       "ចំនួនចុះឈ្មោះ",
       "មិនគ្រប់លក្ខខណ្ឌ",
-      "ចូលសិក្សា",
+      "ចូលសិក្សា(បានអនុម័ត)",
       "បោះបង់ការសិក្សា",
       "កំពុងសិក្សា",
       "វត្តមានក្រោម៨០%",
