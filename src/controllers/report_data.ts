@@ -7268,12 +7268,12 @@ export default class SubjectController {
             as: "apply_majors",
           },
         },
-        // {
-        //   $unwind: {
-        //     path: "$apply_majors",
-        //     preserveNullAndEmptyArrays: true,
-        //   },
-        // },
+         {
+           $unwind: {
+             path: "$apply_majors",
+             preserveNullAndEmptyArrays: true,
+           },
+         },
         {
           $lookup: {
             from: "schools",
