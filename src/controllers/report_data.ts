@@ -7516,6 +7516,7 @@ export default class SubjectController {
             name: { $first: "$apply_majors.name" },
             name_en: { $first: "$apply_majors.name_en" },
             code: { $first: "$apply_majors.code" },
+            schoolId: { $first: "$schools._id" },
             school: { $first: "$schools.name" },
             course_start: { $first: "$course_start" },
             course_end: { $first: "$course_end" },
@@ -10774,473 +10775,6 @@ export default class SubjectController {
               },
             },
 
-            // Pass exam student
-            total_student_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_female_student_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_male_student_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_poor_1_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            female_student_poor_1_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            male_student_poor_1_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_poor_2_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            female_student_poor_2_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            male_student_poor_2_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_near_poor_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            female_student_near_poor_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            male_student_near_poor_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_not_poor_pass: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$students.student_total_score",
-                              "$school_score",
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            female_student_not_poor_pass: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$students.student_total_score",
-                              "$school_score",
-                            ],
-                          },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            male_student_not_poor_pass: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$students.student_total_score",
-                              "$school_score",
-                            ],
-                          },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
             // Finish Study
             total_finish_studying: {
               $sum: {
@@ -11740,6 +11274,472 @@ export default class SubjectController {
               },
             },
 
+            // Pass exam student
+            total_student_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            total_female_student_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            total_male_student_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            total_student_poor_1_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.POOR_1,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            female_student_poor_1_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.POOR_1,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            male_student_poor_1_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.POOR_1,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            total_student_poor_2_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.POOR_2,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            female_student_poor_2_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.POOR_2,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            male_student_poor_2_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.POOR_2,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            total_student_near_poor_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.NEAR_POOR,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            female_student_near_poor_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.NEAR_POOR,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            male_student_near_poor_pass: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.type_poverty_status",
+                          EnumConstant.TypePovertyStatus.NEAR_POOR,
+                        ],
+                      },
+                      {
+                        $gte: [
+                          "$students.student_total_score",
+                          "$school_score",
+                        ],
+                      },
+                      {
+                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            total_student_not_poor_pass: {
+              $sum: {
+                $cond: [
+                  { $ifNull: ["$students.poor_id", false] },
+                  0,
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $eq: [
+                              "$students.request_timelines._id",
+                              EnumConstant.ACTIVE,
+                            ],
+                          },
+                          {
+                            $gte: [
+                              "$students.student_total_score",
+                              "$school_score",
+                            ],
+                          },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                ],
+              },
+            },
+            female_student_not_poor_pass: {
+              $sum: {
+                $cond: [
+                  { $ifNull: ["$students.poor_id", false] },
+                  0,
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $eq: [
+                              "$students.request_timelines._id",
+                              EnumConstant.ACTIVE,
+                            ],
+                          },
+                          {
+                            $gte: [
+                              "$students.student_total_score",
+                              "$school_score",
+                            ],
+                          },
+                          {
+                            $eq: [
+                              "$students.gender",
+                              EnumConstant.Gender.FEMALE,
+                            ],
+                          },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                ],
+              },
+            },
+            male_student_not_poor_pass: {
+              $sum: {
+                $cond: [
+                  { $ifNull: ["$students.poor_id", false] },
+                  0,
+                  {
+                    $cond: [
+                      {
+                        $and: [
+                          {
+                            $eq: [
+                              "$students.request_timelines._id",
+                              EnumConstant.ACTIVE,
+                            ],
+                          },
+                          {
+                            $gte: [
+                              "$students.student_total_score",
+                              "$school_score",
+                            ],
+                          },
+                          {
+                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                          },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                ],
+              },
+            },
             // Employment
             total_employment: {
               $sum: {
@@ -12198,7 +12198,7 @@ export default class SubjectController {
       "វត្តមានក្រោម៨០%",
       "កំពុងកម្មសិក្សា",
       "ប្រឡងបញ្ចប់ការសិក្សា",
-      "បញ្ចប់ការសិក្សា",
+      "បញ្ចប់ការសិក្សា (ប្រឡងជាប់)",
       "ទទួលបានការងារ",
     ];
     for (let i = 0; i < headerTitle.length; i++) {
@@ -12339,24 +12339,6 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 8,
-        total_student: sch.total_student_pass,
-        total_student_female: sch.total_female_student_pass,
-        total_student_male: sch.total_male_student_pass,
-        total_student_poor_1: sch.total_student_poor_1_pass,
-        total_student_poor_1_female: sch.female_student_poor_1_pass,
-        total_student_poor_1_male: sch.male_student_poor_1_pass,
-        total_student_poor_2: sch.total_student_poor_2_pass,
-        total_student_poor_2_female: sch.female_student_poor_2_pass,
-        total_student_poor_2_male: sch.male_student_poor_2_pass,
-        total_student_near_poor: sch.total_student_near_poor_pass,
-        total_student_near_poor_female: sch.female_student_near_poor_pass,
-        total_student_near_poor_male: sch.male_student_near_poor_pass,
-        total_student_not_poor: sch.total_student_not_poor_pass,
-        total_student_not_poor_female: sch.female_student_not_poor_pass,
-        total_student_not_poor_male: sch.male_student_not_poor_pass,
-      });
-      studentData.push({
-        _id: 9,
         total_student: sch.total_finish_studying,
         total_student_female: sch.total_finish_studying_female,
         total_student_male: sch.total_finish_studying_male,
@@ -12373,6 +12355,25 @@ export default class SubjectController {
         total_student_not_poor_female: sch.finish_studying_not_poor_female,
         total_student_not_poor_male: sch.finish_studying_not_poor_male,
       });
+      studentData.push({
+        _id: 9,
+        total_student: sch.total_student_pass,
+        total_student_female: sch.total_female_student_pass,
+        total_student_male: sch.total_male_student_pass,
+        total_student_poor_1: sch.total_student_poor_1_pass,
+        total_student_poor_1_female: sch.female_student_poor_1_pass,
+        total_student_poor_1_male: sch.male_student_poor_1_pass,
+        total_student_poor_2: sch.total_student_poor_2_pass,
+        total_student_poor_2_female: sch.female_student_poor_2_pass,
+        total_student_poor_2_male: sch.male_student_poor_2_pass,
+        total_student_near_poor: sch.total_student_near_poor_pass,
+        total_student_near_poor_female: sch.female_student_near_poor_pass,
+        total_student_near_poor_male: sch.male_student_near_poor_pass,
+        total_student_not_poor: sch.total_student_not_poor_pass,
+        total_student_not_poor_female: sch.female_student_not_poor_pass,
+        total_student_not_poor_male: sch.male_student_not_poor_pass,
+      });
+
       studentData.push({
         _id: 10,
         total_student: sch.total_employment,
