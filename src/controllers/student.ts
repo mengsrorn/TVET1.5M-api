@@ -471,6 +471,10 @@ export default class Controller extends AbstractController<IStudents> {
                     response.scholarship_status = EnumConstant.waiting;
                     response.change_course = 1
                 }
+                if (getStudent.courses.course_end < new Date()) {
+                    response.scholarship_status = EnumConstant.FINISHED_STUDY;
+                    response.change_course = 1
+                }
                 if (await controllers.systemConfig.getChangeCourse() == EnumConstant.ACTIVE) {
                     response.change_course = 1
                 }
@@ -499,8 +503,9 @@ export default class Controller extends AbstractController<IStudents> {
                 page: 1,
             })
             response.request_timelines = getTimeline.length > 0 ? getTimeline[0]: null;
-        }
+        }        
         return response;
+        
     }
 
     async approvalScholarship(req: any) {
@@ -1123,10 +1128,21 @@ export default class Controller extends AbstractController<IStudents> {
                                                    ]
                                                 },
                                                 then: EnumConstant.ACTIVE,
-                                                else: "$scholarship_status"
-                                            }
-                                        }
-                                    }
+                                                else: {
+                                                    $cond : {
+                                                        if: {
+                                                            $and : [
+                                                                { $lt: ["$courses.course_end", new Date()] },
+                                                                { $eq: ["$scholarship_status", EnumConstant.ACTIVE] }
+                                                            ]
+                                                        },
+                                                        then: EnumConstant.FINISHED_STUDY,
+                                                        else: "$scholarship_status"
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
                                 },    
                             }
                         },
