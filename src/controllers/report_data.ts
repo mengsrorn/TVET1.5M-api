@@ -29,10 +29,12 @@ export default class SubjectController {
         EnumConstant.QUIT_BFORE_COURSE,
         EnumConstant.QUIT_DURING_COURSE,
       ],
+      student_occupations: ["មានការងារ"],
     };
   }
   async approvedList(req: any) {
-    let { schools, shifts, scholarship_status } = req.query;
+    let { schools, shifts, scholarship_status, student_occupations } =
+      req.query;
     let [skip, limit] = controllers.student.skipLimit(req);
     let [startDate, endDate] = CommonUtil.parseStartDateEndDate(
       req.query.start_date,
@@ -67,6 +69,12 @@ export default class SubjectController {
         query.status = EnumConstant.QUIT;
       }
     }
+    let matchStudentOccupations: any = {};
+
+    if (student_occupations) {
+      matchStudentOccupations.student_occupations = { $exists: true, $ne: [] };
+    }
+
     let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
     let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
 
@@ -112,6 +120,29 @@ export default class SubjectController {
                 },
               },
               { $unwind: { path: "$courses" } },
+              {
+                $lookup: {
+                  from: "student_occupations",
+                  let: { studentId: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$students", "$$studentId"] },
+                        has_job: 1
+                      },
+                    },
+                    { $sort: { createdAt: -1 } },
+                    { $limit: 1 },
+                  ],
+                  as: "student_occupations",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$student_occupations",
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
               {
                 $addFields: {
                   shifts: "$courses.shifts",
@@ -213,11 +244,17 @@ export default class SubjectController {
             scholarship_status: 1,
             type_poverty_status: 1,
             id_card_number: 1,
+            student_occupations: 1,
             createdAt: 1,
             updatedAt: 1,
           },
         },
-        { $match: matchScholarshipStatus },
+        {
+          $match: matchScholarshipStatus,
+        },
+        {
+          $match: matchStudentOccupations
+        },
         { $sort: { last_name: 1, first_name: 1 } },
         {
           $facet: {
