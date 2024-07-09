@@ -686,7 +686,6 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
           ],
         },
       },
-
       { $sort: { sort_condition: 1, _id: -1 } },
       {
         $facet: {
@@ -704,7 +703,319 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
                     },
                   },
                   {
-                    $count: "total_count",
+                    $group: {
+                      _id: null,
+                      total_register_count: { $sum: 1 },
+                      total_register_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_register_poorid_student: {
+                        $sum: {
+                          $cond: [{ $ifNull: ["$poor_id", false] }, 1, 0],
+                        },
+                      },
+                      total_register_poorid_female_student: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                { $ifNull: ["$poor_id", false] },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+
+                      total_active_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $eq: ["$scholarship_status", EnumConstant.ACTIVE],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_active_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $eq: [
+                                    "$scholarship_status",
+                                    EnumConstant.ACTIVE,
+                                  ],
+                                },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_active_poorid_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $eq: [
+                                    "$scholarship_status",
+                                    EnumConstant.ACTIVE,
+                                  ],
+                                },
+                                { $ifNull: ["$poor_id", false] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_active_poorid_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $eq: [
+                                    "$scholarship_status",
+                                    EnumConstant.ACTIVE,
+                                  ],
+                                },
+                                { $ifNull: ["$poor_id", false] },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_reject_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $eq: [
+                                "$scholarship_status",
+                                EnumConstant.REJECTED,
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_reject_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $eq: [
+                                    "$scholarship_status",
+                                    EnumConstant.REJECTED,
+                                  ],
+                                },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_reject_poorid_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $eq: [
+                                    "$scholarship_status",
+                                    EnumConstant.REJECTED,
+                                  ],
+                                },
+                                { $ifNull: ["$poor_id", false] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_reject_poorid_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $eq: [
+                                    "$scholarship_status",
+                                    EnumConstant.REJECTED,
+                                  ],
+                                },
+                                { $ifNull: ["$poor_id", false] },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_leave_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $in: [
+                                "$type_leavel_scholarships",
+                                [
+                                  controllers.typeLeaveScholarship.status.DEAD,
+                                  controllers.typeLeaveScholarship.status
+                                    .FAKE_DOCUMENT,
+                                  controllers.typeLeaveScholarship.status
+                                    .LEAVE_BEFORE_EVALUATE,
+                                  controllers.typeLeaveScholarship.status
+                                    .NOT_ENOUGH_DOCUMENT,
+                                  controllers.typeLeaveScholarship.status
+                                    .PERSONAL_LEAVE,
+                                  controllers.typeLeaveScholarship.status
+                                    .SUPPEND,
+                                ],
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_leave_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $in: [
+                                    "$type_leavel_scholarships",
+                                    [
+                                      controllers.typeLeaveScholarship.status
+                                        .DEAD,
+                                      controllers.typeLeaveScholarship.status
+                                        .FAKE_DOCUMENT,
+                                      controllers.typeLeaveScholarship.status
+                                        .LEAVE_BEFORE_EVALUATE,
+                                      controllers.typeLeaveScholarship.status
+                                        .NOT_ENOUGH_DOCUMENT,
+                                      controllers.typeLeaveScholarship.status
+                                        .PERSONAL_LEAVE,
+                                      controllers.typeLeaveScholarship.status
+                                        .SUPPEND,
+                                    ],
+                                  ],
+                                },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_leave_poorid_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $in: [
+                                    "$type_leavel_scholarships",
+                                    [
+                                      controllers.typeLeaveScholarship.status
+                                        .DEAD,
+                                      controllers.typeLeaveScholarship.status
+                                        .FAKE_DOCUMENT,
+                                      controllers.typeLeaveScholarship.status
+                                        .LEAVE_BEFORE_EVALUATE,
+                                      controllers.typeLeaveScholarship.status
+                                        .NOT_ENOUGH_DOCUMENT,
+                                      controllers.typeLeaveScholarship.status
+                                        .PERSONAL_LEAVE,
+                                      controllers.typeLeaveScholarship.status
+                                        .SUPPEND,
+                                    ],
+                                  ],
+                                },
+                                { $ifNull: ["$poor_id", false] },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                      total_leave_poorid_female_count: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $in: [
+                                    "$type_leavel_scholarships",
+                                    [
+                                      controllers.typeLeaveScholarship.status
+                                        .DEAD,
+                                      controllers.typeLeaveScholarship.status
+                                        .FAKE_DOCUMENT,
+                                      controllers.typeLeaveScholarship.status
+                                        .LEAVE_BEFORE_EVALUATE,
+                                      controllers.typeLeaveScholarship.status
+                                        .NOT_ENOUGH_DOCUMENT,
+                                      controllers.typeLeaveScholarship.status
+                                        .PERSONAL_LEAVE,
+                                      controllers.typeLeaveScholarship.status
+                                        .SUPPEND,
+                                    ],
+                                  ],
+                                },
+                                { $ifNull: ["$poor_id", false] },
+                                {
+                                  $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                                },
+                              ],
+                            },
+                            1,
+                            0,
+                          ],
+                        },
+                      },
+                    },
                   },
                 ],
                 as: "students",
@@ -713,32 +1024,133 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
             {
               $addFields: {
                 total_submit_student_count: {
-                  $ifNull: [{ $arrayElemAt: ["$students.total_count", 0] }, 0],
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_register_count", 0] },
+                    0,
+                  ],
                 },
-              },
-            },
-            {
-              $lookup: {
-                from: "students",
-                let: { courseId: "$_id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: { $eq: ["$courses", "$$courseId"] },
-                      scholarship_status: EnumConstant.ACTIVE,
+                total_submit_student_female_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: [
+                        "$students.total_register_female_count",
+                        0,
+                      ],
                     },
-                  },
-                  {
-                    $count: "count",
-                  },
-                ],
-                as: "students",
-              },
-            },
-            {
-              $addFields: {
-                student_active_count: {
-                  $ifNull: [{ $arrayElemAt: ["$students.count", 0] }, 0],
+                    0,
+                  ],
+                },
+                total_submit_poorid_student_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: [
+                        "$students.total_register_poorid_student",
+                        0,
+                      ],
+                    },
+                    0,
+                  ],
+                },
+                total_submit_poorid_student_female_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: [
+                        "$students.total_register_poorid_female_student",
+                        0,
+                      ],
+                    },
+                    0,
+                  ],
+                },
+                total_student_active_count: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_active_count", 0] },
+                    0,
+                  ],
+                },
+                total_student_active_female_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: ["$students.total_active_female_count", 0],
+                    },
+                    0,
+                  ],
+                },
+                total_student_active_poorid_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: ["$students.total_active_poorid_count", 0],
+                    },
+                    0,
+                  ],
+                },
+                total_student_active_poorid_female_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: [
+                        "$students.total_active_poorid_female_count",
+                        0,
+                      ],
+                    },
+                    0,
+                  ],
+                },
+                total_student_reject_count: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_reject_count", 0] },
+                    0,
+                  ],
+                },
+                total_student_reject_female_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: ["$students.total_reject_female_count", 0],
+                    },
+                    0,
+                  ],
+                },
+                total_student_reject_poorid_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: ["$students.total_reject_poorid_count", 0],
+                    },
+                    0,
+                  ],
+                },
+                total_student_reject_poorid_female_count: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: [
+                        "$students.total_reject_poorid_female_count",
+                        0,
+                      ],
+                    },
+                    0,
+                  ],
+                },
+                total_student_leave_count: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_leave_count", 0] },
+                    0,
+                  ],
+                },
+                total_student_leave_female_count: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_leave_female_count", 0] },
+                    0,
+                  ],
+                },
+                total_student_leave_poorid_count: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_leave_poorid_count", 0] },
+                    0,
+                  ],
+                },
+                total_student_leave_poorid_female_count: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$students.total_leave_poorid_female_count", 0] },
+                    0,
+                  ],
                 },
               },
             },
@@ -761,6 +1173,7 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
         },
       },
     ]);
+
     return await this.facetData(data, [
       { path: "apply_majors", select: "name name_en code" },
       { path: "shifts", select: "name name_en code" },

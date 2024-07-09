@@ -30,6 +30,7 @@ export default class SubjectController {
         EnumConstant.QUIT_DURING_COURSE,
       ],
       student_occupations: ["មានការងារ"],
+      student_internships: ["កំពុងកម្មសិក្សា"],
     };
   }
   async approvedList(req: any) {
@@ -128,7 +129,7 @@ export default class SubjectController {
                     {
                       $match: {
                         $expr: { $eq: ["$students", "$$studentId"] },
-                        has_job: 1
+                        has_job: 1,
                       },
                     },
                     { $sort: { createdAt: -1 } },
@@ -253,7 +254,7 @@ export default class SubjectController {
           $match: matchScholarshipStatus,
         },
         {
-          $match: matchStudentOccupations
+          $match: matchStudentOccupations,
         },
         { $sort: { last_name: 1, first_name: 1 } },
         {
@@ -12439,5 +12440,204 @@ export default class SubjectController {
       report_data: jsonData,
       total_count: totalCount,
     };
+  }
+
+  async internshipStudentReport(req: any) {
+    let { schools, student_internships } = req.query;
+    let [skip, limit] = controllers.student.skipLimit(req);
+
+    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
+
+    let matchStudent: any = {
+      status: EnumConstant.ACTIVE,
+    };
+
+    if (req.body._user.schools) {
+      schools = req.body._user.schools;
+    }
+
+    if (schools) {
+      matchStudent.schools = new ObjectId(schools);
+    }
+
+
+    let matchStudentInternship: any = {};
+
+    if (student_internships) {
+      matchStudentInternship["student_internships.end_date"] = {
+        $gte: maxToday,
+      };
+    }
+    let data = await models.requestTimeline
+      .aggregate([
+        { $sort: { createdAt: -1 } },
+        {
+          $group: {
+            _id: "$students",
+            createdAt: { $first: "$createdAt" },
+          },
+        },
+        {
+          $lookup: {
+            from: "students",
+            let: { id: "$_id", timelineCreatedAt: "$createdAt" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$_id", "$$id"] },
+                  ...matchStudent,
+                },
+              },
+              {
+                $lookup: {
+                  from: "student_internships",
+                  let: { studentId: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$students", "$$studentId"] },
+                        start_date : { $lte: maxToday }
+                      },
+                    },
+                    {
+                      $lookup: {
+                        from: "development_partners",
+                        let: { partnerId: "$development_partners" },
+                        pipeline: [
+                          {
+                            $match: {
+                              $expr: { $eq: ["$_id", "$$partnerId"] },
+                            },
+                          },
+                        ],
+                        as: "development_partners",
+                      },
+                    },
+                    {
+                      $unwind: {
+                        path: "$development_partners",
+                        preserveNullAndEmptyArrays: true,
+                      },
+                    },
+                  ],
+                  as: "student_internships",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$student_internships",
+                },
+              },
+              {
+                $lookup: {
+                  from: "courses",
+                  let: { courseId: "$courses" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$_id", "$$courseId"] },
+                      },
+                    },
+                  ],
+                  as: "courses",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$courses",
+                },
+              },
+            ],
+            as: "students",
+          },
+        },
+        {
+          $unwind: "$students",
+        },
+        {
+          $replaceRoot: {
+            newRoot: "$students",
+          },
+        },
+
+        {
+          $project: {
+            first_name: 1,
+            last_name: 1,
+            profile_image: 1,
+            gender: 1,
+            schools: 1,
+            courses: {
+              apply_majors: 1,
+            },
+            type_poverty_status: 1,
+            student_internships: {
+              start_date: 1,
+              end_date: 1,
+              pass_fail: 1,
+              type_internships: 1,
+              job_opportunity: 1,
+              salary: 1,
+              development_partners: {
+                name: 1,
+                name_en: 1,
+                phone_number: 1,
+                bussiness: 1,
+                type_development_partners: 1,
+                address: {
+                  city_provinces: 1,
+                  districts: 1,
+                  villages: 1,
+                },
+              },
+            },
+          },
+        },
+        {
+          $match: matchStudentInternship,
+        },
+        { $sort: { last_name: 1, first_name: 1 } },
+        {
+          $facet: {
+            result: [
+              { $skip: skip },
+              ...(limit > 0 ? [{ $limit: limit }] : []),
+            ],
+            totalCount: [
+              {
+                $count: "count",
+              },
+            ],
+          },
+        },
+      ])
+      .allowDiskUse(true);
+
+    let [getData, count] = await controllers.student.facetData(data, [
+      {
+        path: "schools",
+        select: "name name_en profile_image",
+        model: "schools",
+      },
+      { path: "courses.apply_majors", select: "name", model: "skills" },
+      {
+        path: "student_internships.development_partners.address.city_provinces",
+        select: "name name_en",
+        model: "city_provinces",
+      },
+      {
+        path: "student_internships.development_partners.address.districts",
+        select: "name name_en",
+        model: "districts",
+      },
+      {
+        path: "student_internships.development_partners.address.villages",
+        select: "name name_en",
+        model: "villages",
+      },
+    ]);
+
+    let json = CommonUtil.JSONParse(getData);
+    return [json, count];
   }
 }

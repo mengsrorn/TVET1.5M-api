@@ -290,4 +290,16 @@ export default [
       return controllers.reportData.getWeeklyReport(req);
     }
   ),
+  createGetRoute(
+    "/admin/report_data/student_internship",
+    {
+      authorized_permissions: [pAdmin.report.studentList],
+      validators: [
+        validate_request("end_date", { exist: true }, CheckType.query),
+      ],
+    },
+    async (req) => {      
+      return controllers.reportData.internshipStudentReport(req);
+    }
+  ),
 ];
