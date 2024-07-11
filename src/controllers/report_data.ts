@@ -4048,9 +4048,9 @@ export default class SubjectController {
               {
                 $match: {
                   $expr: { $eq: ["$schools", "$$id"] },
-                  scholarship_status: {
-                    $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
-                  },
+                  // scholarship_status: {
+                  //   $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
+                  // },
                   ...matchPoor,
                   ...matchCourse,
                   ...matchTypeDocument,
@@ -4081,13 +4081,13 @@ export default class SubjectController {
                         $expr: {
                           $eq: ["$students", "$$id"],
                         },
-                        status: {
-                          $in: [
-                            EnumConstant.ACTIVE,
-                            EnumConstant.QUIT,
-                            EnumConstant.RESUME_STUDY,
-                          ],
-                        },
+                        // status: {
+                        //   $in: [
+                        //     EnumConstant.ACTIVE,
+                        //     EnumConstant.QUIT,
+                        //     EnumConstant.RESUME_STUDY,
+                        //   ],
+                        // },
                         timeline_type: queryTimelineType,
                         createdAt: { $lte: endDate },
                       },
@@ -4164,10 +4164,45 @@ export default class SubjectController {
                 },
               },
               {
+                $lookup: {
+                  from: "attendance_students",
+                  let: { studentId: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $eq: ["$students", "$$studentId"],
+                        },
+                      },
+                    },
+                  ],
+                  as: "attendance_students",
+                },
+              },
+              {
                 $group: {
                   _id: null,
                   scholarship_approved_student: {
-                    $sum: 1,
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $in: [
+                                "$scholarship_status",
+                                [
+                                  EnumConstant.ACTIVE,
+                                  EnumConstant.QUIT,
+                                  EnumConstant.RESUME_STUDY,
+                                ],
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
                   },
                   scholarship_approved_student_female: {
                     $sum: {
@@ -4175,6 +4210,16 @@ export default class SubjectController {
                         {
                           $and: [
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                            {
+                              $in: [
+                                "$scholarship_status",
+                                [
+                                  EnumConstant.ACTIVE,
+                                  EnumConstant.QUIT,
+                                  EnumConstant.RESUME_STUDY,
+                                ],
+                              ],
+                            },
                           ],
                         },
                         1,
@@ -4970,6 +5015,144 @@ export default class SubjectController {
                       ],
                     },
                   },
+                  student_apply: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $in: [
+                                "$scholarship_status",
+                                [
+                                  EnumConstant.REQUESTING,
+                                  EnumConstant.ACTIVE,
+                                  EnumConstant.QUIT,
+                                  EnumConstant.REJECTED,
+                                ],
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  student_female_apply: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $in: [
+                                "$scholarship_status",
+                                [
+                                  EnumConstant.REQUESTING,
+                                  EnumConstant.ACTIVE,
+                                  EnumConstant.QUIT,
+                                  EnumConstant.REJECTED,
+                                ],
+                              ],
+                            },
+                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  student_approve_studying_inactive: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$request_timelines._id",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                            { $lt: ["$courses.course_start", maxToday] },
+                            { $gt: ["$courses.course_end", minToday] },
+                            {
+                              $or: [
+                                {
+                                  $eq: [
+                                    {
+                                      $avg: "$attendance_students.attendance_score",
+                                    },
+                                    0,
+                                  ],
+                                },
+                                {
+                                  $eq: [
+                                    {
+                                      $ifNull: [
+                                        {
+                                          $avg: "$attendance_students.attendance_score",
+                                        },
+                                        null,
+                                      ],
+                                    },
+                                    null,
+                                  ],
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  student_approve_studying_female_inactive: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$request_timelines._id",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                            { $lt: ["$courses.course_start", maxToday] },
+                            { $gt: ["$courses.course_end", minToday] },
+                            {
+                              $or: [
+                                {
+                                  $eq: [
+                                    {
+                                      $avg: "$attendance_students.attendance_score",
+                                    },
+                                    0,
+                                  ],
+                                },
+                                {
+                                  $eq: [
+                                    {
+                                      $ifNull: [
+                                        {
+                                          $avg: "$attendance_students.attendance_score",
+                                        },
+                                        null,
+                                      ],
+                                    },
+                                    null,
+                                  ],
+                                },
+                              ],
+                            },
+                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
                 },
               },
               {
@@ -5213,6 +5396,42 @@ export default class SubjectController {
                 0,
               ],
             },
+            student_apply: {
+              $cond: [
+                {
+                  $ifNull: ["$student_apply", false],
+                },
+                "$student_apply",
+                0,
+              ],
+            },
+            student_female_apply: {
+              $cond: [
+                {
+                  $ifNull: ["$student_female_apply", false],
+                },
+                "$student_female_apply",
+                0,
+              ],
+            },
+            student_approve_studying_inactive: {
+              $cond: [
+                {
+                  $ifNull: ["$student_approve_studying_inactive", false],
+                },
+                "$student_approve_studying_inactive",
+                0,
+              ],
+            },
+            student_approve_studying_female_inactive: {
+              $cond: [
+                {
+                  $ifNull: ["$student_approve_studying_female_inactive", false],
+                },
+                "$student_approve_studying_female_inactive",
+                0,
+              ],
+            },
           },
         },
         {
@@ -5402,6 +5621,18 @@ export default class SubjectController {
             new_employment_female: {
               $sum: "$new_employment_female",
             },
+            student_apply: {
+              $sum: "$student_apply",
+            },
+            student_female_apply: {
+              $sum: "$student_female_apply",
+            },
+            student_approve_studying_inactive: {
+              $sum: "$student_approve_studying_inactive",
+            },
+            student_approve_studying_female_inactive: {
+              $sum: "$student_approve_studying_female_inactive",
+            },
           },
         },
         {
@@ -5480,13 +5711,19 @@ export default class SubjectController {
       "new_employment_female",
       "new_course_finish",
       "course_finish",
+      "student_apply",
+      "student_female_apply",
+      "student_approve_studying_inactive",
+      "student_approve_studying_female_inactive",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
+      "សិស្សដែលបានចុះឈ្មោះចូលរៀន",
       "ចំនួនសិស្សអនុម័ត",
       "រងចាំចូលរៀនថ្មីថ្ងៃនេះ",
       "រងចាំចូលរៀន",
       "បោះបង់មុនចូលរៀន",
+      "សិស្សចុះឈ្មោះប៉ុន្តែមិនមករៀន",
       "ចូលរៀនថ្មីថ្ងៃនេះ",
       "កំពុងរៀន",
       "បោះបង់ពេលរៀន",
@@ -5508,79 +5745,89 @@ export default class SubjectController {
         let sch = jsonData[i].schools[school];
         studentData.push({
           _id: 1,
+          total_student: sch.student_apply,
+          total_female: sch.student_female_apply,
+        });
+        studentData.push({
+          _id: 2,
           total_student: sch.scholarship_approved_student,
           total_female: sch.scholarship_approved_student_female,
         });
         studentData.push({
-          _id: 2,
+          _id: 3,
           total_student: sch.new_waiting_studying,
           total_female: sch.new_waiting_studying_female,
         });
         studentData.push({
-          _id: 3,
+          _id: 4,
           total_student: sch.waiting_studying,
           total_female: sch.waiting_studying_female,
         });
         studentData.push({
-          _id: 4,
+          _id: 5,
           total_student: sch.quit_before_studying,
           total_female: sch.quit_before_studying_female,
         });
         studentData.push({
-          _id: 5,
+          _id: 6,
+          total_student: sch.student_approve_studying_inactive,
+          total_female: sch.student_approve_studying_female_inactive,
+        });
+        studentData.push({
+          _id: 7,
           total_student: sch.new_study,
           total_female: sch.new_study_female,
         });
         studentData.push({
-          _id: 6,
+          _id: 8,
           total_student: sch.studying,
           total_female: sch.studying_female,
         });
         // studentData.push({ _id: 7, total_student: sch.id_poor_studying, total_female: sch.id_poor_studying_female });
         studentData.push({
-          _id: 7,
+          _id: 9,
           total_student: sch.quit_during_studying,
           total_female: sch.quit_during_studying_female,
         });
         studentData.push({
-          _id: 8,
+          _id: 10,
           total_student: sch.quit_during_studying_not_enough_document,
           total_female: sch.quit_during_studying_not_enough_document_female,
         });
         studentData.push({
-          _id: 9,
+          _id: 11,
           total_student: sch.new_internship,
           total_female: sch.new_internship_female,
         });
         studentData.push({
-          _id: 10,
+          _id: 12,
           total_student: sch.internship,
           total_female: sch.internship_female,
         });
         studentData.push({
-          _id: 11,
+          _id: 13,
           total_student: sch.finish_studying,
           total_female: sch.finish_studying_female,
           total_course_finish: sch.course_finish,
         });
         studentData.push({
-          _id: 12,
+          _id: 14,
           total_student: sch.employment,
           total_female: sch.employment_female,
         });
         studentData.push({
-          _id: 13,
+          _id: 15,
           total_student: sch.new_finish_studying,
           total_female: sch.new_finish_studying_female,
           total_new_course_finish: sch.new_course_finish,
         });
         studentData.push({
-          _id: 14,
+          _id: 16,
           total_student: sch.new_employment,
           total_female: sch.new_employment_female,
         });
         studentData.push({
-          _id: 15,
+          _id: 17,
           total_student: sch.course_studying,
           total_female: sch.course_new,
         });
@@ -5595,79 +5842,89 @@ export default class SubjectController {
       let city = jsonData[i];
       studentData.push({
         _id: 1,
+        total_student: city.student_apply,
+        total_female: city.student_female_apply,
+      });
+      studentData.push({
+        _id: 2,
         total_student: city.scholarship_approved_student,
         total_female: city.scholarship_approved_student_female,
       });
       studentData.push({
-        _id: 2,
+        _id: 3,
         total_student: city.new_waiting_studying,
         total_female: city.new_waiting_studying_female,
       });
       studentData.push({
-        _id: 3,
+        _id: 4,
         total_student: city.waiting_studying,
         total_female: city.waiting_studying_female,
       });
       studentData.push({
-        _id: 4,
+        _id: 5,
         total_student: city.quit_before_studying,
         total_female: city.quit_before_studying_female,
       });
       studentData.push({
-        _id: 5,
+        _id: 6,
+        total_student: city.student_approve_studying_inactive,
+        total_female: city.student_approve_studying_female_inactive,
+      });
+      studentData.push({
+        _id: 7,
         total_student: city.new_study,
         total_female: city.new_study_female,
       });
       studentData.push({
-        _id: 6,
+        _id: 8,
         total_student: city.studying,
         total_female: city.studying_female,
       });
       // studentData.push({ _id: 7, total_student: city.id_poor_studying, total_female: city.id_poor_studying_female });
       studentData.push({
-        _id: 7,
+        _id: 9,
         total_student: city.quit_during_studying,
         total_female: city.quit_during_studying_female,
       });
       studentData.push({
-        _id: 8,
+        _id: 10,
         total_student: city.quit_during_studying_not_enough_document,
         total_female: city.quit_during_studying_not_enough_document_female,
       });
       studentData.push({
-        _id: 9,
+        _id: 11,
         total_student: city.new_internship,
         total_female: city.new_internship_female,
       });
       studentData.push({
-        _id: 10,
+        _id: 12,
         total_student: city.internship,
         total_female: city.internship_female,
       });
       studentData.push({
-        _id: 11,
+        _id: 13,
         total_student: city.finish_studying,
         total_female: city.finish_studying_female,
         total_course_finish: city.course_finish,
       });
       studentData.push({
-        _id: 12,
+        _id: 14,
         total_student: city.employment,
         total_female: city.employment_female,
       });
       studentData.push({
-        _id: 13,
+        _id: 15,
         total_student: city.new_finish_studying,
         total_female: city.new_finish_studying_female,
         total_new_course_finish: city.new_course_finish,
       });
       studentData.push({
-        _id: 14,
+        _id: 16,
         total_student: city.new_employment,
         total_female: city.new_employment_female,
       });
       studentData.push({
-        _id: 15,
+        _id: 17,
         total_student: city.course_studying,
         total_female: city.course_new,
       });
@@ -5754,9 +6011,9 @@ export default class SubjectController {
                     {
                       $match: {
                         $expr: { $eq: ["$courses", "$$id"] },
-                        scholarship_status: {
-                          $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
-                        },
+                        // scholarship_status: {
+                        //   $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
+                        // },
                         ...matchPoor,
                       },
                     },
@@ -5773,13 +6030,13 @@ export default class SubjectController {
                               $expr: {
                                 $eq: ["$students", "$$id"],
                               },
-                              status: {
-                                $in: [
-                                  EnumConstant.ACTIVE,
-                                  EnumConstant.QUIT,
-                                  EnumConstant.RESUME_STUDY,
-                                ],
-                              },
+                              // status: {
+                              //   $in: [
+                              //     EnumConstant.ACTIVE,
+                              //     EnumConstant.QUIT,
+                              //     EnumConstant.RESUME_STUDY,
+                              //   ],
+                              // },
                               timeline_type: queryTimelineType,
                               createdAt: { $lte: endDate },
                             },
@@ -5855,6 +6112,22 @@ export default class SubjectController {
                         preserveNullAndEmptyArrays: true,
                       },
                     },
+                    {
+                      $lookup: {
+                        from: "attendance_students",
+                        let: { studentId: "$_id" },
+                        pipeline: [
+                          {
+                            $match: {
+                              $expr: {
+                                $eq: ["$students", "$$studentId"],
+                              },
+                            },
+                          },
+                        ],
+                        as: "attendance_students",
+                      },
+                    },
                   ],
                   as: "students",
                 },
@@ -5872,9 +6145,51 @@ export default class SubjectController {
             name_en: { $first: "$name_en" },
             sectors: { $first: "$sectors" },
             code: { $first: "$code" },
-            scholarship_approved_student: {
+            student_apply: {
               $sum: {
                 $cond: [{ $ifNull: ["$courses.students", false] }, 1, 0],
+              },
+            },
+            student_female_apply: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$courses.students.gender",
+                          EnumConstant.Gender.FEMALE,
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            scholarship_approved_student: {
+              $sum: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $in: [
+                            "$courses.students.scholarship_status",
+                            [
+                              EnumConstant.ACTIVE,
+                              EnumConstant.QUIT,
+                              EnumConstant.RESUME_STUDY,
+                            ],
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
               },
             },
             scholarship_approved_student_female: {
@@ -5886,6 +6201,16 @@ export default class SubjectController {
                         $eq: [
                           "$courses.students.gender",
                           EnumConstant.Gender.FEMALE,
+                        ],
+                      },
+                      {
+                        $in: [
+                          "$courses.students.scholarship_status",
+                          [
+                            EnumConstant.ACTIVE,
+                            EnumConstant.QUIT,
+                            EnumConstant.RESUME_STUDY,
+                          ],
                         ],
                       },
                     ],
@@ -6781,6 +7106,102 @@ export default class SubjectController {
                 ],
               },
             },
+            student_approve_studying_inactive: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$courses.students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      { $lt: ["$courses.course_start", maxToday] },
+                      { $gt: ["$courses.course_end", minToday] },
+                      {
+                        $or: [
+                          {
+                            $eq: [
+                              {
+                                $avg: "$courses.students.attendance_students.attendance_score",
+                              },
+                              0,
+                            ],
+                          },
+                          {
+                            $eq: [
+                              {
+                                $ifNull: [
+                                  {
+                                    $avg: "$courses.students.attendance_students.attendance_score",
+                                  },
+                                  null,
+                                ],
+                              },
+                              null,
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            student_approve_studying_female_inactive: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$courses.students.request_timelines._id",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      { $lt: ["$courses.course_start", maxToday] },
+                      { $gt: ["$courses.course_end", minToday] },
+                      {
+                        $or: [
+                          {
+                            $eq: [
+                              {
+                                $avg: "$courses.students.attendance_students.attendance_score",
+                              },
+                              0,
+                            ],
+                          },
+                          {
+                            $eq: [
+                              {
+                                $ifNull: [
+                                  {
+                                    $avg: "$courses.students.attendance_students.attendance_score",
+                                  },
+                                  null,
+                                ],
+                              },
+                              null,
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$courses.students.gender",
+                          EnumConstant.Gender.FEMALE,
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
           },
         },
         {
@@ -6961,6 +7382,18 @@ export default class SubjectController {
             new_employment_female: {
               $sum: "$new_employment_female",
             },
+            student_apply: {
+              $sum: "$student_apply",
+            },
+            student_female_apply: {
+              $sum: "$student_female_apply",
+            },
+            student_approve_studying_inactive: {
+              $sum: "$student_approve_studying_inactive",
+            },
+            student_approve_studying_female_inactive: {
+              $sum: "$student_approve_studying_female_inactive",
+            },
           },
         },
         {
@@ -7036,13 +7469,19 @@ export default class SubjectController {
       "new_employment_female",
       "new_course_finish",
       "course_finish",
+      "student_apply",
+      "student_female_apply",
+      "student_approve_studying_inactive",
+      "student_approve_studying_female_inactive",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
+      "សិស្សដែលបានចុះឈ្មោះចូលរៀន",
       "ចំនួនសិស្សអនុម័ត",
       "រងចាំចូលរៀនថ្មីថ្ងៃនេះ",
       "រងចាំចូលរៀន",
       "បោះបង់មុនចូលរៀន",
+      "សិស្សចុះឈ្មោះប៉ុន្តែមិនមករៀន",
       "ចូលរៀនថ្មីថ្ងៃនេះ",
       "កំពុងរៀន",
       "បោះបង់ពេលរៀន",
@@ -7064,79 +7503,89 @@ export default class SubjectController {
         let sch = jsonData[i].apply_majors[major];
         studentData.push({
           _id: 1,
+          total_student: sch.student_apply,
+          total_female: sch.student_female_apply,
+        });
+        studentData.push({
+          _id: 2,
           total_student: sch.scholarship_approved_student,
           total_female: sch.scholarship_approved_student_female,
         });
         studentData.push({
-          _id: 2,
+          _id: 3,
           total_student: sch.new_waiting_studying,
           total_female: sch.new_waiting_studying_female,
         });
         studentData.push({
-          _id: 3,
+          _id: 4,
           total_student: sch.waiting_studying,
           total_female: sch.waiting_studying_female,
         });
         studentData.push({
-          _id: 4,
+          _id: 5,
           total_student: sch.quit_before_studying,
           total_female: sch.quit_before_studying_female,
         });
         studentData.push({
-          _id: 5,
+          _id: 6,
+          total_student: sch.student_approve_studying_inactive,
+          total_female: sch.student_approve_studying_female_inactive,
+        });
+        studentData.push({
+          _id: 7,
           total_student: sch.new_study,
           total_female: sch.new_study_female,
         });
         studentData.push({
-          _id: 6,
+          _id: 8,
           total_student: sch.studying,
           total_female: sch.studying_female,
         });
         // studentData.push({ _id: 7, total_student: sch.id_poor_studying, total_female: sch.id_poor_studying_female });
         studentData.push({
-          _id: 7,
+          _id: 9,
           total_student: sch.quit_during_studying,
           total_female: sch.quit_during_studying_female,
         });
         studentData.push({
-          _id: 8,
+          _id: 10,
           total_student: sch.quit_during_studying_not_enough_document,
           total_female: sch.quit_during_studying_not_enough_document_female,
         });
         studentData.push({
-          _id: 9,
+          _id: 11,
           total_student: sch.new_internship,
           total_female: sch.new_internship_female,
         });
         studentData.push({
-          _id: 10,
+          _id: 12,
           total_student: sch.internship,
           total_female: sch.internship_female,
         });
         studentData.push({
-          _id: 11,
+          _id: 13,
           total_student: sch.finish_studying,
           total_female: sch.finish_studying_female,
           total_course_finish: sch.course_finish,
         });
         studentData.push({
-          _id: 12,
+          _id: 14,
           total_student: sch.employment,
           total_female: sch.employment_female,
         });
         studentData.push({
-          _id: 13,
+          _id: 15,
           total_student: sch.new_finish_studying,
           total_female: sch.new_finish_studying_female,
           total_new_course_finish: sch.new_course_finish,
         });
         studentData.push({
-          _id: 14,
+          _id: 16,
           total_student: sch.new_employment,
           total_female: sch.new_employment_female,
         });
         studentData.push({
-          _id: 15,
+          _id: 17,
           total_student: sch.course_studying,
           total_female: sch.course_new,
         });
@@ -7151,79 +7600,89 @@ export default class SubjectController {
       let city = jsonData[i];
       studentData.push({
         _id: 1,
+        total_student: city.student_apply,
+        total_female: city.student_female_apply,
+      });
+      studentData.push({
+        _id: 2,
         total_student: city.scholarship_approved_student,
         total_female: city.scholarship_approved_student_female,
       });
       studentData.push({
-        _id: 2,
+        _id: 3,
         total_student: city.new_waiting_studying,
         total_female: city.new_waiting_studying_female,
       });
       studentData.push({
-        _id: 3,
+        _id: 4,
         total_student: city.waiting_studying,
         total_female: city.waiting_studying_female,
       });
       studentData.push({
-        _id: 4,
+        _id: 5,
         total_student: city.quit_before_studying,
         total_female: city.quit_before_studying_female,
       });
       studentData.push({
-        _id: 5,
+        _id: 6,
+        total_student: city.student_approve_studying_inactive,
+        total_female: city.student_approve_studying_female_inactive,
+      });
+      studentData.push({
+        _id: 7,
         total_student: city.new_study,
         total_female: city.new_study_female,
       });
       studentData.push({
-        _id: 6,
+        _id: 8,
         total_student: city.studying,
         total_female: city.studying_female,
       });
       // studentData.push({ _id: 7, total_student: city.id_poor_studying, total_female: city.id_poor_studying_female });
       studentData.push({
-        _id: 7,
+        _id: 9,
         total_student: city.quit_during_studying,
         total_female: city.quit_during_studying_female,
       });
       studentData.push({
-        _id: 8,
+        _id: 10,
         total_student: city.quit_during_studying_not_enough_document,
         total_female: city.quit_during_studying_not_enough_document_female,
       });
       studentData.push({
-        _id: 9,
+        _id: 11,
         total_student: city.new_internship,
         total_female: city.new_internship_female,
       });
       studentData.push({
-        _id: 10,
+        _id: 12,
         total_student: city.internship,
         total_female: city.internship_female,
       });
       studentData.push({
-        _id: 11,
+        _id: 13,
         total_student: city.finish_studying,
         total_female: city.finish_studying_female,
         total_course_finish: city.course_finish,
       });
       studentData.push({
-        _id: 12,
+        _id: 14,
         total_student: city.employment,
         total_female: city.employment_female,
       });
       studentData.push({
-        _id: 13,
+        _id: 15,
         total_student: city.new_finish_studying,
         total_female: city.new_finish_studying_female,
         total_new_course_finish: city.new_course_finish,
       });
       studentData.push({
-        _id: 14,
+        _id: 16,
         total_student: city.new_employment,
         total_female: city.new_employment_female,
       });
       studentData.push({
-        _id: 15,
+        _id: 17,
         total_student: city.course_studying,
         total_female: city.course_new,
       });
@@ -9992,11 +10451,19 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
                           EnumConstant.ACTIVE,
                         ],
                       },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
@@ -10015,14 +10482,22 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
                       },
@@ -10041,14 +10516,22 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE,
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $eq: ["$students.gender", EnumConstant.Gender.MALE],
                       },
@@ -10067,11 +10550,19 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
@@ -10096,11 +10587,19 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
@@ -10128,11 +10627,19 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
@@ -10160,11 +10667,19 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                       {
                         $lt: ["$students.average_attendance", 80],
                       },
@@ -10189,9 +10704,9 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
@@ -10208,6 +10723,14 @@ export default class SubjectController {
                       },
                       { $lt: ["$course_start", maxToday] },
                       { $gt: ["$course_end", minToday] },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                     ],
                   },
                   1,
@@ -10221,9 +10744,9 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
@@ -10240,6 +10763,14 @@ export default class SubjectController {
                       },
                       { $lt: ["$course_start", maxToday] },
                       { $gt: ["$course_end", minToday] },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                     ],
                   },
                   1,
@@ -10253,9 +10784,9 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
@@ -10269,6 +10800,14 @@ export default class SubjectController {
                       },
                       { $lt: ["$course_start", maxToday] },
                       { $gt: ["$course_end", minToday] },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                     ],
                   },
                   1,
@@ -10282,9 +10821,9 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
@@ -10301,6 +10840,14 @@ export default class SubjectController {
                       },
                       { $lt: ["$course_start", maxToday] },
                       { $gt: ["$course_end", minToday] },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                     ],
                   },
                   1,
@@ -10314,9 +10861,9 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
+                        $in: [
                           "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                         ],
                       },
                       {
@@ -10333,6 +10880,14 @@ export default class SubjectController {
                       },
                       { $lt: ["$course_start", maxToday] },
                       { $gt: ["$course_end", minToday] },
+                      {
+                        $eq: [
+                          "$students.scholarship_status",
+                          EnumConstant.ACTIVE
+                        ],
+                      },
+                      { $ne: ["$students.average_attendance", null] },
+                      { $ne: ["$students.average_attendance", 0] },
                     ],
                   },
                   1,
@@ -10350,9 +10905,9 @@ export default class SubjectController {
                       {
                         $and: [
                           {
-                            $eq: [
+                            $in: [
                               "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
+                              [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                             ],
                           },
                           {
@@ -10360,6 +10915,14 @@ export default class SubjectController {
                           },
                           { $lt: ["$course_start", maxToday] },
                           { $gt: ["$course_end", minToday] },
+                          {
+                            $eq: [
+                              "$students.scholarship_status",
+                              EnumConstant.ACTIVE
+                            ],
+                          },
+                          { $ne: ["$students.average_attendance", null] },
+                          { $ne: ["$students.average_attendance", 0] },
                         ],
                       },
                       1,
@@ -10379,9 +10942,9 @@ export default class SubjectController {
                       {
                         $and: [
                           {
-                            $eq: [
+                            $in: [
                               "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
+                              [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                             ],
                           },
                           {
@@ -10395,6 +10958,14 @@ export default class SubjectController {
                           },
                           { $lt: ["$course_start", maxToday] },
                           { $gt: ["$course_end", minToday] },
+                          {
+                            $eq: [
+                              "$students.scholarship_status",
+                              EnumConstant.ACTIVE,
+                            ],
+                          },
+                          { $ne: ["$students.average_attendance", null] },
+                          { $ne: ["$students.average_attendance", 0] },
                         ],
                       },
                       1,
@@ -10414,9 +10985,9 @@ export default class SubjectController {
                       {
                         $and: [
                           {
-                            $eq: [
+                            $in: [
                               "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
+                              [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
                             ],
                           },
                           {
@@ -10427,6 +10998,14 @@ export default class SubjectController {
                           },
                           { $lt: ["$course_start", maxToday] },
                           { $gt: ["$course_end", minToday] },
+                          {
+                            $eq: [
+                              "$students.scholarship_status",
+                              EnumConstant.ACTIVE
+                            ],
+                          },
+                          { $ne: ["$students.average_attendance", null] },
+                          { $ne: ["$students.average_attendance", 0] },
                         ],
                       },
                       1,
@@ -12460,7 +13039,6 @@ export default class SubjectController {
       matchStudent.schools = new ObjectId(schools);
     }
 
-
     let matchStudentInternship: any = {};
 
     if (student_internships) {
@@ -12496,7 +13074,7 @@ export default class SubjectController {
                     {
                       $match: {
                         $expr: { $eq: ["$students", "$$studentId"] },
-                        start_date : { $lte: maxToday }
+                        start_date: { $lte: maxToday },
                       },
                     },
                     {
