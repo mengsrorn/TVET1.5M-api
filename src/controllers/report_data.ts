@@ -4051,6 +4051,7 @@ export default class SubjectController {
                   // scholarship_status: {
                   //   $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
                   // },
+                 
                   ...matchPoor,
                   ...matchCourse,
                   ...matchTypeDocument,
@@ -4088,6 +4089,7 @@ export default class SubjectController {
                         //     EnumConstant.RESUME_STUDY,
                         //   ],
                         // },
+                        status:{$ne: EnumConstant.DELETE},
                         timeline_type: queryTimelineType,
                         createdAt: { $lte: endDate },
                       },
@@ -4189,7 +4191,7 @@ export default class SubjectController {
                           $and: [
                             {
                               $in: [
-                                "$scholarship_status",
+                                "$request_timelines._id",
                                 [
                                   EnumConstant.ACTIVE,
                                   EnumConstant.QUIT,
@@ -4212,7 +4214,7 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                             {
                               $in: [
-                                "$scholarship_status",
+                                "$request_timelines._id",
                                 [
                                   EnumConstant.ACTIVE,
                                   EnumConstant.QUIT,
@@ -5016,44 +5018,13 @@ export default class SubjectController {
                     },
                   },
                   student_apply: {
-                    $sum: {
-                      $cond: [
-                        {
-                          $and: [
-                            {
-                              $in: [
-                                "$scholarship_status",
-                                [
-                                  EnumConstant.REQUESTING,
-                                  EnumConstant.ACTIVE,
-                                  EnumConstant.QUIT,
-                                  EnumConstant.REJECTED,
-                                ],
-                              ],
-                            },
-                          ],
-                        },
-                        1,
-                        0,
-                      ],
-                    },
+                    $sum: 1,
                   },
                   student_female_apply: {
                     $sum: {
                       $cond: [
                         {
                           $and: [
-                            {
-                              $in: [
-                                "$scholarship_status",
-                                [
-                                  EnumConstant.REQUESTING,
-                                  EnumConstant.ACTIVE,
-                                  EnumConstant.QUIT,
-                                  EnumConstant.REJECTED,
-                                ],
-                              ],
-                            },
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
@@ -6014,6 +5985,7 @@ export default class SubjectController {
                         // scholarship_status: {
                         //   $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
                         // },
+                      
                         ...matchPoor,
                       },
                     },
@@ -6037,6 +6009,7 @@ export default class SubjectController {
                               //     EnumConstant.RESUME_STUDY,
                               //   ],
                               // },
+                              status:{$ne: EnumConstant.DELETE},
                               timeline_type: queryTimelineType,
                               createdAt: { $lte: endDate },
                             },
@@ -6176,7 +6149,7 @@ export default class SubjectController {
                       $and: [
                         {
                           $in: [
-                            "$courses.students.scholarship_status",
+                            "$courses.students.request_timelines._id",
                             [
                               EnumConstant.ACTIVE,
                               EnumConstant.QUIT,
@@ -6205,7 +6178,7 @@ export default class SubjectController {
                       },
                       {
                         $in: [
-                          "$courses.students.scholarship_status",
+                          "$courses.students.request_timelines._id",
                           [
                             EnumConstant.ACTIVE,
                             EnumConstant.QUIT,
@@ -10558,7 +10531,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10595,7 +10568,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10635,7 +10608,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10675,7 +10648,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10726,7 +10699,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10766,7 +10739,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10803,7 +10776,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10843,7 +10816,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10883,7 +10856,7 @@ export default class SubjectController {
                       {
                         $eq: [
                           "$students.scholarship_status",
-                          EnumConstant.ACTIVE
+                          EnumConstant.ACTIVE,
                         ],
                       },
                       { $ne: ["$students.average_attendance", null] },
@@ -10918,7 +10891,7 @@ export default class SubjectController {
                           {
                             $eq: [
                               "$students.scholarship_status",
-                              EnumConstant.ACTIVE
+                              EnumConstant.ACTIVE,
                             ],
                           },
                           { $ne: ["$students.average_attendance", null] },
@@ -11001,7 +10974,7 @@ export default class SubjectController {
                           {
                             $eq: [
                               "$students.scholarship_status",
-                              EnumConstant.ACTIVE
+                              EnumConstant.ACTIVE,
                             ],
                           },
                           { $ne: ["$students.average_attendance", null] },
@@ -13218,4 +13191,5 @@ export default class SubjectController {
     let json = CommonUtil.JSONParse(getData);
     return [json, count];
   }
+
 }

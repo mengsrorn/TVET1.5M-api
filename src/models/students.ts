@@ -83,7 +83,7 @@ const schema = new Schema({
     courses: { type: Schema.Types.ObjectId, ref: "courses" },
     schools: { type: Schema.Types.ObjectId, ref: "schools" },
     users: { type: Schema.Types.ObjectId, ref: "users" },
-    type_poverty_status: { type: String, ref: "type_poverty_status" },
+    type_poverty_status: { type: String, ref: "type_poverty_statuses" },
     type_leavel_scholarships: { type: Number, ref: "type_leave_scholarships" },
     type_scholarship_documents: { type: Number, ref: "type_scholarship_documents" },
     type_projects: { type: Number, ref: "type_projects", default: EnumConstant.TypeProject.scholarship },

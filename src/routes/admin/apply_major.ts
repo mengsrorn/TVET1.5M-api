@@ -2,6 +2,7 @@ import validate, { CheckType } from '../../utils/validate_request';
 import controllers from '../../controllers';
 import { createDeleteRoute, createGetRoute, createPostRoute, createPatchRoute } from "../../utils";
 import { pAdmin } from '../../utils/permissionAdmin';
+import EnumConstant from '../../utils/enumConstant';
 
 let validates = [
     validate('name', { exist: true, }),
@@ -45,7 +46,9 @@ export default [
         {
             authorized_permissions: [pAdmin.applyMajor.read],
         }, async (req) => {
-            let query: any = { }
+            let query: any = { 
+                type_projects: EnumConstant.TypeProject.scholarship
+            }
             if (req.query.search) {
                 query.name = { $regex: req.query.search, $options: "i" };
             }

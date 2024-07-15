@@ -254,6 +254,7 @@ function viewer() {
 		pAdmin.school.read,
 		pAdmin.course.read,
 		pAdmin.staff.read,
+		pAdmin.student.readRequesting,
 		pAdmin.student.read,
 		pAdmin.poorStudent.read,
 		pAdmin.student.readApproved,
@@ -283,12 +284,15 @@ function officer() {
 		pAdmin.student.read,
 		pAdmin.student.writeUser,
 		pAdmin.student.addPoorId,
+		pAdmin.report.studentList
 	]
 }
 
 function read_report() {
 	return [
 		pAdmin.sector.read,
+		pAdmin.student.readApproved,
+		pAdmin.student.read,
 		pAdmin.applyMajor.read,
 		...Object.values(pAdmin.report),
 		...Object.values(pAdmin.account),

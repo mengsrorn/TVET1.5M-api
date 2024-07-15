@@ -23,6 +23,7 @@ export default class ApplyMajorController extends AbstractController<IApply_majo
         this.checkThrowAlreadyExist(checkName)
         controllers.sector.checkThrowNotFound(validateSector)
         let data = new this.model(req.body);
+        data.type_projects = EnumConstant.TypeProject.scholarship
         return await this.model.create(data);
     }
 
@@ -45,7 +46,7 @@ export default class ApplyMajorController extends AbstractController<IApply_majo
         this.checkThrowAlreadyExist(checkName)
         controllers.sector.checkThrowNotFound(validateSector)
         let data = new this.model(req.body); 
-        let obj = CommonUtil.removeKeys(data, ["_id"]);
+        let obj = CommonUtil.removeKeys(data, ["_id", "type_projects"]);
         return this.model.findOneAndUpdate({ _id: id }, { $set: obj }, { new: true }); 
     }
 
