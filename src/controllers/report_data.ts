@@ -3979,7 +3979,7 @@ export default class SubjectController {
       apply_majors,
       shifts,
       schools,
-      poor_status,
+      poor_id,
       type_poverty_status,
       type_scholarship_documents,
     } = req.query;
@@ -4015,8 +4015,8 @@ export default class SubjectController {
     let matchPoor: any = {};
 
     let queryTimelineType = EnumConstant.TimelineType.SCHOLARSHIP;
-    if (poor_status) {
-      matchPoor.poor_status = Number(poor_status);
+    if (poor_id) {
+      matchPoor.poor_id = { $exists: true };
       // queryTimelineType = EnumConstant.TimelineType.IDPOOR;
     }
     if (type_poverty_status) {
@@ -4051,7 +4051,6 @@ export default class SubjectController {
                   // scholarship_status: {
                   //   $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
                   // },
-                 
                   ...matchPoor,
                   ...matchCourse,
                   ...matchTypeDocument,
@@ -4089,7 +4088,7 @@ export default class SubjectController {
                         //     EnumConstant.RESUME_STUDY,
                         //   ],
                         // },
-                        status:{$ne: EnumConstant.DELETE},
+                        status: { $ne: EnumConstant.DELETE },
                         timeline_type: queryTimelineType,
                         createdAt: { $lte: endDate },
                       },
@@ -5912,7 +5911,7 @@ export default class SubjectController {
   }
 
   async studentStudyStatusByMajor(req: any) {
-    let { apply_majors, shifts, schools, poor_status, type_poverty_status } =
+    let { apply_majors, shifts, schools, poor_id, type_poverty_status } =
       req.query;
     if (req.body._user.schools) {
       schools = req.body._user.schools;
@@ -5925,8 +5924,8 @@ export default class SubjectController {
     }
     let queryTimelineType = EnumConstant.TimelineType.SCHOLARSHIP;
     let matchPoor: any = {};
-    if (poor_status) {
-      matchPoor.poor_status = Number(poor_status);
+    if (poor_id) {
+      matchPoor.poor_id = { $exists: true };
       // queryTimelineType = EnumConstant.TimelineType.IDPOOR
     }
     if (type_poverty_status) {
@@ -5985,7 +5984,7 @@ export default class SubjectController {
                         // scholarship_status: {
                         //   $in: [EnumConstant.ACTIVE, EnumConstant.QUIT],
                         // },
-                      
+
                         ...matchPoor,
                       },
                     },
@@ -6009,7 +6008,7 @@ export default class SubjectController {
                               //     EnumConstant.RESUME_STUDY,
                               //   ],
                               // },
-                              status:{$ne: EnumConstant.DELETE},
+                              status: { $ne: EnumConstant.DELETE },
                               timeline_type: queryTimelineType,
                               createdAt: { $lte: endDate },
                             },
@@ -13191,5 +13190,4 @@ export default class SubjectController {
     let json = CommonUtil.JSONParse(getData);
     return [json, count];
   }
-
 }
