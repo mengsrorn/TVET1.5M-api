@@ -965,6 +965,7 @@ export default class SubjectController {
     }
     let queryMajor: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (apply_majors) {
       queryMajor._id = new ObjectId(apply_majors);
@@ -2006,6 +2007,7 @@ export default class SubjectController {
     }
     let queryMajor: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (apply_majors) {
       queryMajor._id = new ObjectId(apply_majors);
@@ -4200,7 +4202,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4223,7 +4237,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4248,7 +4274,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4274,7 +4312,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4322,7 +4372,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4371,7 +4433,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4408,7 +4482,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4446,7 +4532,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4466,7 +4564,19 @@ export default class SubjectController {
                             // { $gt: ["$courses.course_end", maxToday]},
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4487,7 +4597,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4513,7 +4635,19 @@ export default class SubjectController {
                             // { $gt: ["$courses.course_end", maxToday]},
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4540,7 +4674,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4561,7 +4707,19 @@ export default class SubjectController {
                             { $gt: ["$courses.course_end", minToday] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4583,7 +4741,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4604,7 +4774,19 @@ export default class SubjectController {
                             { $gt: ["$courses.course_end", minToday] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4626,7 +4808,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4653,7 +4847,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4681,7 +4887,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4733,7 +4951,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4791,7 +5021,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4800,7 +5042,19 @@ export default class SubjectController {
                     $sum: {
                       $cond: [
                         { $ifNull: ["$student_internships", false] },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4814,7 +5068,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4823,7 +5089,19 @@ export default class SubjectController {
                     $sum: {
                       $cond: [
                         { $ifNull: ["$student_occupations", false] },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4837,7 +5115,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -4864,7 +5154,19 @@ export default class SubjectController {
                                 },
                               ],
                             },
-                            1,
+                            {
+                              $cond: [
+                                { $ifNull: [poor_id, false] },
+                                {
+                                  $cond: [
+                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                    1,
+                                    0,
+                                  ],
+                                },
+                                1,
+                              ],
+                            },
                             0,
                           ],
                         },
@@ -4899,7 +5201,19 @@ export default class SubjectController {
                                 },
                               ],
                             },
-                            1,
+                            {
+                              $cond: [
+                                { $ifNull: [poor_id, false] },
+                                {
+                                  $cond: [
+                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                    1,
+                                    0,
+                                  ],
+                                },
+                                1,
+                              ],
+                            },
                             0,
                           ],
                         },
@@ -4928,7 +5242,19 @@ export default class SubjectController {
                                 { $lte: ["$courses.course_end", maxToday] },
                               ],
                             },
-                            1,
+                            {
+                              $cond: [
+                                { $ifNull: [poor_id, false] },
+                                {
+                                  $cond: [
+                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                    1,
+                                    0,
+                                  ],
+                                },
+                                1,
+                              ],
+                            },
                             0,
                           ],
                         },
@@ -4965,7 +5291,19 @@ export default class SubjectController {
                                 { $lte: ["$courses.course_end", maxToday] },
                               ],
                             },
-                            1,
+                            {
+                              $cond: [
+                                { $ifNull: [poor_id, false] },
+                                {
+                                  $cond: [
+                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                    1,
+                                    0,
+                                  ],
+                                },
+                                1,
+                              ],
+                            },
                             0,
                           ],
                         },
@@ -4984,7 +5322,19 @@ export default class SubjectController {
                                 { $gte: ["$courses.course_end", minToday] },
                               ],
                             },
-                            1,
+                            {
+                              $cond: [
+                                { $ifNull: [poor_id, false] },
+                                {
+                                  $cond: [
+                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                    1,
+                                    0,
+                                  ],
+                                },
+                                1,
+                              ],
+                            },
                             0,
                           ],
                         },
@@ -5008,7 +5358,19 @@ export default class SubjectController {
                                 { $gte: ["$courses.course_end", minToday] },
                               ],
                             },
-                            1,
+                            {
+                              $cond: [
+                                { $ifNull: [poor_id, false] },
+                                {
+                                  $cond: [
+                                    { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                    1,
+                                    0,
+                                  ],
+                                },
+                                1,
+                              ],
+                            },
                             0,
                           ],
                         },
@@ -5072,7 +5434,19 @@ export default class SubjectController {
                             },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -5118,7 +5492,19 @@ export default class SubjectController {
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
-                        1,
+                        {
+                          $cond: [
+                            { $ifNull: [poor_id, false] },
+                            {
+                              $cond: [
+                                { $eq: ["$poor_status", EnumConstant.ACTIVE] },
+                                1,
+                                0,
+                              ],
+                            },
+                            1,
+                          ],
+                        },
                         0,
                       ],
                     },
@@ -5918,11 +6304,13 @@ export default class SubjectController {
     }
     let queryMajor: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship
     };
     if (apply_majors) {
       queryMajor._id = new ObjectId(apply_majors);
     }
     let queryTimelineType = EnumConstant.TimelineType.SCHOLARSHIP;
+
     let matchPoor: any = {};
     if (poor_id) {
       matchPoor.poor_id = { $exists: true };
@@ -6158,7 +6546,19 @@ export default class SubjectController {
                         },
                       ],
                     },
-                    1,
+                    {
+                      $cond: [
+                        { $ifNull: [poor_id, false] },
+                        {
+                          $cond: [
+                            { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                            1,
+                            0,
+                          ],
+                        },
+                        1,
+                      ],
+                    },
                     0,
                   ],
                 },
@@ -6187,7 +6587,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6211,7 +6623,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6241,7 +6665,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6289,7 +6725,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6343,7 +6791,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6380,7 +6840,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6423,7 +6895,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6443,7 +6927,19 @@ export default class SubjectController {
                       // { $gt: ["$courses.course_end", maxToday]},
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6469,7 +6965,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6501,7 +7009,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6539,7 +7059,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6559,7 +7091,19 @@ export default class SubjectController {
                       { $gt: ["$courses.course_end", minToday] },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6585,7 +7129,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6611,7 +7167,19 @@ export default class SubjectController {
                       { $gt: ["$courses.course_end", minToday] },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6643,7 +7211,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6669,7 +7249,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6701,7 +7293,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6749,7 +7353,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6809,7 +7425,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6818,7 +7446,19 @@ export default class SubjectController {
               $sum: {
                 $cond: [
                   { $ifNull: ["$courses.students.student_internships", false] },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6842,7 +7482,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6851,7 +7503,19 @@ export default class SubjectController {
               $sum: {
                 $cond: [
                   { $ifNull: ["$courses.students.student_occupations", false] },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6875,7 +7539,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -6902,7 +7578,19 @@ export default class SubjectController {
                           },
                         ],
                       },
-                      1,
+                      {
+                        $cond: [
+                          { $ifNull: [poor_id, false] },
+                          {
+                            $cond: [
+                              { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                              1,
+                              0,
+                            ],
+                          },
+                          1,
+                        ],
+                      },
                       0,
                     ],
                   },
@@ -6947,7 +7635,19 @@ export default class SubjectController {
                           },
                         ],
                       },
-                      1,
+                      {
+                        $cond: [
+                          { $ifNull: [poor_id, false] },
+                          {
+                            $cond: [
+                              { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                              1,
+                              0,
+                            ],
+                          },
+                          1,
+                        ],
+                      },
                       0,
                     ],
                   },
@@ -6979,7 +7679,19 @@ export default class SubjectController {
                           { $lte: ["$courses.course_end", maxToday] },
                         ],
                       },
-                      1,
+                      {
+                        $cond: [
+                          { $ifNull: [poor_id, false] },
+                          {
+                            $cond: [
+                              { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                              1,
+                              0,
+                            ],
+                          },
+                          1,
+                        ],
+                      },
                       0,
                     ],
                   },
@@ -7021,7 +7733,19 @@ export default class SubjectController {
                           { $lte: ["$courses.course_end", maxToday] },
                         ],
                       },
-                      1,
+                      {
+                        $cond: [
+                          { $ifNull: [poor_id, false] },
+                          {
+                            $cond: [
+                              { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                              1,
+                              0,
+                            ],
+                          },
+                          1,
+                        ],
+                      },
                       0,
                     ],
                   },
@@ -7038,7 +7762,19 @@ export default class SubjectController {
                       {
                         $and: [{ $gte: ["$courses.course_end", minToday] }],
                       },
-                      1,
+                      {
+                        $cond: [
+                          { $ifNull: [poor_id, false] },
+                          {
+                            $cond: [
+                              { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                              1,
+                              0,
+                            ],
+                          },
+                          1,
+                        ],
+                      },
                       0,
                     ],
                   },
@@ -7070,7 +7806,19 @@ export default class SubjectController {
                       {
                         $and: [{ $gte: ["$courses.course_end", minToday] }],
                       },
-                      1,
+                      {
+                        $cond: [
+                          { $ifNull: [poor_id, false] },
+                          {
+                            $cond: [
+                              { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                              1,
+                              0,
+                            ],
+                          },
+                          1,
+                        ],
+                      },
                       0,
                     ],
                   },
@@ -7118,7 +7866,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
@@ -7169,7 +7929,19 @@ export default class SubjectController {
                       },
                     ],
                   },
-                  1,
+                  {
+                    $cond: [
+                      { $ifNull: [poor_id, false] },
+                      {
+                        $cond: [
+                          { $eq: ["$courses.students.poor_status", EnumConstant.ACTIVE] },
+                          1,
+                          0,
+                        ],
+                      },
+                      1,
+                    ],
+                  },
                   0,
                 ],
               },
