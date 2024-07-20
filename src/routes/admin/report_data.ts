@@ -195,7 +195,7 @@ export default [
     },
     async (req) => {
       let data: any = await controllers.reportData.filterData(req);
-      data.poor_status = [EnumConstant.ACTIVE];
+      data.poor_id = ["ម.ជ.ជ អនុម័ត"];
       data.type_poverty_status = [
         {
           _id: EnumConstant.TypePovertyStatus.POOR_1,
@@ -234,11 +234,7 @@ export default [
           { optional: true, isMongoId: true },
           CheckType.query
         ),
-        validate_request(
-          "poor_status",
-          { optional: true, isNumeric: true },
-          CheckType.query
-        ).isIn([EnumConstant.ACTIVE]),
+        validate_request("poor_id", { optional: true }, CheckType.query),
       ],
     },
     async (req) => {
@@ -262,11 +258,7 @@ export default [
           { optional: true, isMongoId: true },
           CheckType.query
         ),
-        validate_request(
-          "poor_status",
-          { optional: true, isNumeric: true },
-          CheckType.query
-        ).isIn([EnumConstant.ACTIVE]),
+        validate_request("poor_id", { optional: true }, CheckType.query),
       ],
     },
     async (req) => {
@@ -288,6 +280,18 @@ export default [
     },
     async (req) => {
       return controllers.reportData.getWeeklyReport(req);
+    }
+  ),
+  createGetRoute(
+    "/admin/report_data/student_internship",
+    {
+      authorized_permissions: [pAdmin.report.studentList],
+      validators: [
+        validate_request("end_date", { exist: true }, CheckType.query),
+      ],
+    },
+    async (req) => {
+      return controllers.reportData.internshipStudentReport(req);
     }
   ),
 ];

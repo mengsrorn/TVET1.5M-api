@@ -17,4 +17,4 @@ const schema = new Schema({
     status: { type: Number, default: 1},
 }, {timestamps: true});
 
-export const modelTypePoverty = model<IType_poverty_status>("type_poverty_status", schema);
+export const modelTypePoverty = model<IType_poverty_status>("type_poverty_statuses", schema);
