@@ -5617,44 +5617,13 @@ export default class SubjectController {
                       ],
                     },
                   },
-                  student_approve_studying_inactive: {
+                  quit_before_evaluate: {
                     $sum: {
                       $cond: [
                         {
                           $and: [
-                            {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.ACTIVE,
-                              ],
-                            },
-                            { $lt: ["$courses.course_start", maxToday] },
-                            { $gt: ["$courses.course_end", minToday] },
-                            {
-                              $or: [
-                                {
-                                  $eq: [
-                                    {
-                                      $avg: "$attendance_students.attendance_score",
-                                    },
-                                    0,
-                                  ],
-                                },
-                                {
-                                  $eq: [
-                                    {
-                                      $ifNull: [
-                                        {
-                                          $avg: "$attendance_students.attendance_score",
-                                        },
-                                        null,
-                                      ],
-                                    },
-                                    null,
-                                  ],
-                                },
-                              ],
-                            },
+                            { $eq: ["$request_timelines._id",EnumConstant.QUIT] },
+                            { $lt: ["$courses.course_end", "$request_timelines.createdAt"] },
                           ],
                         },
                         {
@@ -5680,44 +5649,13 @@ export default class SubjectController {
                       ],
                     },
                   },
-                  student_approve_studying_female_inactive: {
+                  quit_before_evaluate_female: {
                     $sum: {
                       $cond: [
                         {
                           $and: [
-                            {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.ACTIVE,
-                              ],
-                            },
-                            { $lt: ["$courses.course_start", maxToday] },
-                            { $gt: ["$courses.course_end", minToday] },
-                            {
-                              $or: [
-                                {
-                                  $eq: [
-                                    {
-                                      $avg: "$attendance_students.attendance_score",
-                                    },
-                                    0,
-                                  ],
-                                },
-                                {
-                                  $eq: [
-                                    {
-                                      $ifNull: [
-                                        {
-                                          $avg: "$attendance_students.attendance_score",
-                                        },
-                                        null,
-                                      ],
-                                    },
-                                    null,
-                                  ],
-                                },
-                              ],
-                            },
+                            { $eq: ["$request_timelines._id", EnumConstant.QUIT] },
+                            { $lt: ["$courses.course_end","$request_timelines.createdAt"]},
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
@@ -5744,7 +5682,7 @@ export default class SubjectController {
                       ],
                     },
                   },
-                },
+                }
               },
               {
                 $project: { _id: 0 },
@@ -6005,21 +5943,21 @@ export default class SubjectController {
                 0,
               ],
             },
-            student_approve_studying_inactive: {
+            quit_before_evaluate: {
               $cond: [
                 {
-                  $ifNull: ["$student_approve_studying_inactive", false],
+                  $ifNull: ["$quit_before_evaluate", false],
                 },
-                "$student_approve_studying_inactive",
+                "$quit_before_evaluate",
                 0,
               ],
             },
-            student_approve_studying_female_inactive: {
+            quit_before_evaluate_female: {
               $cond: [
                 {
-                  $ifNull: ["$student_approve_studying_female_inactive", false],
+                  $ifNull: ["$quit_before_evaluate_female", false],
                 },
-                "$student_approve_studying_female_inactive",
+                "$quit_before_evaluate_female",
                 0,
               ],
             },
@@ -6218,11 +6156,11 @@ export default class SubjectController {
             student_female_apply: {
               $sum: "$student_female_apply",
             },
-            student_approve_studying_inactive: {
-              $sum: "$student_approve_studying_inactive",
+            quit_before_evaluate: {
+              $sum: "$quit_before_evaluate",
             },
-            student_approve_studying_female_inactive: {
-              $sum: "$student_approve_studying_female_inactive",
+            quit_before_evaluate_female: {
+              $sum: "$quit_before_evaluate_female",
             },
           },
         },
@@ -6304,8 +6242,8 @@ export default class SubjectController {
       "course_finish",
       "student_apply",
       "student_female_apply",
-      "student_approve_studying_inactive",
-      "student_approve_studying_female_inactive",
+      "quit_before_evaluate",
+      "quit_before_evaluate_female",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
@@ -6314,7 +6252,7 @@ export default class SubjectController {
       "រងចាំចូលរៀនថ្មីថ្ងៃនេះ",
       "រងចាំចូលរៀន",
       "បោះបង់មុនចូលរៀន",
-      "សិស្សចុះឈ្មោះប៉ុន្តែមិនមករៀន",
+      "បោះបង់មុនពេលធ្វើតេស្តវាយតម្លៃ",
       "ចូលរៀនថ្មីថ្ងៃនេះ",
       "កំពុងរៀន",
       "បោះបង់ពេលរៀន",
@@ -6361,8 +6299,8 @@ export default class SubjectController {
         });
         studentData.push({
           _id: 6,
-          total_student: sch.student_approve_studying_inactive,
-          total_female: sch.student_approve_studying_female_inactive,
+          total_student: sch.quit_before_evaluate,
+          total_female: sch.quit_before_evaluate_female,
         });
         studentData.push({
           _id: 7,
@@ -6458,8 +6396,8 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 6,
-        total_student: city.student_approve_studying_inactive,
-        total_female: city.student_approve_studying_female_inactive,
+        total_student: city.quit_before_evaluate,
+        total_female: city.quit_before_evaluate_female,
       });
       studentData.push({
         _id: 7,
@@ -8288,44 +8226,13 @@ export default class SubjectController {
                 ],
               },
             },
-            student_approve_studying_inactive: {
+            quit_before_evaluate: {
               $sum: {
                 $cond: [
                   {
                     $and: [
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$courses.course_start", maxToday] },
-                      { $gt: ["$courses.course_end", minToday] },
-                      {
-                        $or: [
-                          {
-                            $eq: [
-                              {
-                                $avg: "$courses.students.attendance_students.attendance_score",
-                              },
-                              0,
-                            ],
-                          },
-                          {
-                            $eq: [
-                              {
-                                $ifNull: [
-                                  {
-                                    $avg: "$courses.students.attendance_students.attendance_score",
-                                  },
-                                  null,
-                                ],
-                              },
-                              null,
-                            ],
-                          },
-                        ],
-                      },
+                      { $eq: ["$courses.students.request_timelines._id",EnumConstant.QUIT] },
+                      { $lt: ["$courses.course_end", "$courses.students.request_timelines.createdAt"] },
                     ],
                   },
                   {
@@ -8351,50 +8258,14 @@ export default class SubjectController {
                 ],
               },
             },
-            student_approve_studying_female_inactive: {
+            quit_before_evaluate_female: {
               $sum: {
                 $cond: [
                   {
                     $and: [
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$courses.course_start", maxToday] },
-                      { $gt: ["$courses.course_end", minToday] },
-                      {
-                        $or: [
-                          {
-                            $eq: [
-                              {
-                                $avg: "$courses.students.attendance_students.attendance_score",
-                              },
-                              0,
-                            ],
-                          },
-                          {
-                            $eq: [
-                              {
-                                $ifNull: [
-                                  {
-                                    $avg: "$courses.students.attendance_students.attendance_score",
-                                  },
-                                  null,
-                                ],
-                              },
-                              null,
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$courses.students.gender",
-                          EnumConstant.Gender.FEMALE,
-                        ],
-                      },
+                      { $eq: ["$courses.students.request_timelines._id",EnumConstant.QUIT]},
+                      { $lt: ["$courses.course_end", "$courses.students.request_timelines.createdAt"] },
+                      { $eq: ["$courses.students.gender",EnumConstant.Gender.FEMALE] }
                     ],
                   },
                   {
@@ -8606,11 +8477,11 @@ export default class SubjectController {
             student_female_apply: {
               $sum: "$student_female_apply",
             },
-            student_approve_studying_inactive: {
-              $sum: "$student_approve_studying_inactive",
+            quit_before_evaluate: {
+              $sum: "$quit_before_evaluate",
             },
-            student_approve_studying_female_inactive: {
-              $sum: "$student_approve_studying_female_inactive",
+            quit_before_evaluate_female: {
+              $sum: "$quit_before_evaluate_female",
             },
           },
         },
@@ -8689,8 +8560,8 @@ export default class SubjectController {
       "course_finish",
       "student_apply",
       "student_female_apply",
-      "student_approve_studying_inactive",
-      "student_approve_studying_female_inactive",
+      "quit_before_evaluate",
+      "quit_before_evaluate_female",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
@@ -8699,7 +8570,7 @@ export default class SubjectController {
       "រងចាំចូលរៀនថ្មីថ្ងៃនេះ",
       "រងចាំចូលរៀន",
       "បោះបង់មុនចូលរៀន",
-      "សិស្សចុះឈ្មោះប៉ុន្តែមិនមករៀន",
+      "បោះបង់មុនពេលធ្វើតេស្តវាយតម្លៃ",
       "ចូលរៀនថ្មីថ្ងៃនេះ",
       "កំពុងរៀន",
       "បោះបង់ពេលរៀន",
@@ -8746,8 +8617,8 @@ export default class SubjectController {
         });
         studentData.push({
           _id: 6,
-          total_student: sch.student_approve_studying_inactive,
-          total_female: sch.student_approve_studying_female_inactive,
+          total_student: sch.quit_before_evaluate,
+          total_female: sch.quit_before_evaluate_female,
         });
         studentData.push({
           _id: 7,
@@ -8843,8 +8714,8 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 6,
-        total_student: city.student_approve_studying_inactive,
-        total_female: city.student_approve_studying_female_inactive,
+        total_student: city.quit_before_evaluate,
+        total_female: city.quit_before_evaluate_female,
       });
       studentData.push({
         _id: 7,
