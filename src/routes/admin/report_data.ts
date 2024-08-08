@@ -195,25 +195,7 @@ export default [
     },
     async (req) => {
       let data: any = await controllers.reportData.filterData(req);
-      data.poor_id_status = [
-        {
-          _id:1,
-          name: "អនុម័ត (ម.ជ.ជ)"
-        },
-        {
-          _id:3,
-          name: "ស្នើ​​​សុំ​ (ម.ជ.ជ)"
-        },
-        {
-          _id:-3,
-          name: "បដិសេធ​ (ម.ជ.ជ)"
-        },
-        {
-          _id:10,
-          name: "សរុបទាំងបី"
-        }
-       
-      ];
+      data.poor_id = ["ម.ជ.ជ អនុម័ត"];
       data.type_poverty_status = [
         {
           _id: EnumConstant.TypePovertyStatus.POOR_1,
