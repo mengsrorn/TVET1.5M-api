@@ -22,7 +22,6 @@ export default class SubjectController {
         select: "name name_en",
       }),
     ]);
-
     return {
       schools: schools,
       shifts,
@@ -4425,6 +4424,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -4478,6 +4483,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -4501,9 +4512,20 @@ export default class SubjectController {
                         {
                           $and: [
                             {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.QUIT,
+                              $or: [
+                                {
+                                  $eq: [
+                                    "$request_timelines._id",
+                                    EnumConstant.QUIT,
+                                  ],
+                                },
+                                {
+                                  $eq: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
                               ],
                             },
                             {
@@ -4542,6 +4564,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -4565,9 +4593,20 @@ export default class SubjectController {
                         {
                           $and: [
                             {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.QUIT,
+                              $or: [
+                                {
+                                  $eq: [
+                                    "$request_timelines._id",
+                                    EnumConstant.QUIT,
+                                  ],
+                                },
+                                {
+                                  $eq: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
                               ],
                             },
                             {
@@ -4602,6 +4641,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -4666,6 +4711,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -4736,6 +4787,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -4778,6 +4835,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -4831,6 +4894,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -4879,6 +4948,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -4938,6 +5013,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -4981,6 +5062,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5030,6 +5117,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5162,13 +5255,13 @@ export default class SubjectController {
                             },
                             // { $eq: ["$scholarship_status", EnumConstant.ACTIVE] },
                             { $lt: ["$courses.course_end", minToday] },
-                            // {
-                            //   $ne: [
-                            //     "$type_leavel_scholarships",
-                            //     controllers.typeLeaveScholarship.status
-                            //       .LEAVE_BEFORE_EVALUATE,
-                            //   ],
-                            // },
+                            {
+                              $ne: [
+                                "$type_leavel_scholarships",
+                                controllers.typeLeaveScholarship.status
+                                  .LEAVE_BEFORE_EVALUATE,
+                              ],
+                            },
                           ],
                         },
                         {
@@ -5181,6 +5274,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5216,13 +5315,13 @@ export default class SubjectController {
                             },
                             // { $eq: ["$scholarship_status", EnumConstant.ACTIVE ] },
                             { $lt: ["$courses.course_end", minToday] },
-                            // {
-                            //   $ne: [
-                            //     "$type_leavel_scholarships",
-                            //     controllers.typeLeaveScholarship.status
-                            //       .LEAVE_BEFORE_EVALUATE,
-                            //   ],
-                            // },
+                            {
+                              $ne: [
+                                "$type_leavel_scholarships",
+                                controllers.typeLeaveScholarship.status
+                                  .LEAVE_BEFORE_EVALUATE,
+                              ],
+                            },
                             { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
                           ],
                         },
@@ -5236,6 +5335,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5315,6 +5420,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5405,6 +5516,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -5436,6 +5553,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5482,6 +5605,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -5513,6 +5642,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5554,6 +5689,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -5608,6 +5749,12 @@ export default class SubjectController {
                                         {
                                           $eq: [
                                             "$poor_status",
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        {
+                                          $eq: [
+                                            "$id_poor_timeline_status",
                                             EnumConstant.ACTIVE,
                                           ],
                                         },
@@ -5675,6 +5822,12 @@ export default class SubjectController {
                                         },
                                         {
                                           $eq: [
+                                            "$id_poor_timeline_status",
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        {
+                                          $eq: [
                                             "$id_poor_timeline_type",
                                             EnumConstant.TimelineType.IDPOOR,
                                           ],
@@ -5705,13 +5858,13 @@ export default class SubjectController {
                           $cond: [
                             {
                               $and: [
-                                // {
-                                //   $ne: [
-                                //     "$type_leavel_scholarships",
-                                //     controllers.typeLeaveScholarship.status
-                                //       .LEAVE_BEFORE_EVALUATE,
-                                //   ],
-                                // },
+                                {
+                                  $ne: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
                                 { $gte: ["$courses.course_end", minToday] },
                                 { $lte: ["$courses.course_end", maxToday] },
                               ],
@@ -5726,6 +5879,12 @@ export default class SubjectController {
                                         {
                                           $eq: [
                                             "$poor_status",
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        {
+                                          $eq: [
+                                            "$id_poor_timeline_status",
                                             EnumConstant.ACTIVE,
                                           ],
                                         },
@@ -5769,13 +5928,13 @@ export default class SubjectController {
                           $cond: [
                             {
                               $and: [
-                                // {
-                                //   $ne: [
-                                //     "$type_leavel_scholarships",
-                                //     controllers.typeLeaveScholarship.status
-                                //       .LEAVE_BEFORE_EVALUATE,
-                                //   ],
-                                // },
+                                {
+                                  $ne: [
+                                    "$type_leavel_scholarships",
+                                    controllers.typeLeaveScholarship.status
+                                      .LEAVE_BEFORE_EVALUATE,
+                                  ],
+                                },
                                 { $gte: ["$courses.course_end", minToday] },
                                 { $lte: ["$courses.course_end", maxToday] },
                               ],
@@ -5790,6 +5949,12 @@ export default class SubjectController {
                                         {
                                           $eq: [
                                             "$poor_status",
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        {
+                                          $eq: [
+                                            "$id_poor_timeline_status",
                                             EnumConstant.ACTIVE,
                                           ],
                                         },
@@ -5841,6 +6006,12 @@ export default class SubjectController {
                                         },
                                         {
                                           $eq: [
+                                            "$id_poor_timeline_status",
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        {
+                                          $eq: [
                                             "$id_poor_timeline_type",
                                             EnumConstant.TimelineType.IDPOOR,
                                           ],
@@ -5887,6 +6058,12 @@ export default class SubjectController {
                                         {
                                           $eq: [
                                             "$poor_status",
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        {
+                                          $eq: [
+                                            "$id_poor_timeline_status",
                                             EnumConstant.ACTIVE,
                                           ],
                                         },
@@ -5962,6 +6139,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -6014,6 +6197,12 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
+                                        "$id_poor_timeline_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
                                         "$id_poor_timeline_type",
                                         EnumConstant.TimelineType.IDPOOR,
                                       ],
@@ -6052,6 +6241,12 @@ export default class SubjectController {
                                     {
                                       $eq: [
                                         "$poor_status",
+                                        EnumConstant.ACTIVE,
+                                      ],
+                                    },
+                                    {
+                                      $eq: [
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -6101,183 +6296,7 @@ export default class SubjectController {
                                     },
                                     {
                                       $eq: [
-                                        "$id_poor_timeline_type",
-                                        EnumConstant.TimelineType.IDPOOR,
-                                      ],
-                                    },
-                                  ],
-                                },
-                                1,
-                                0,
-                              ],
-                            },
-                            1,
-                          ],
-                        },
-                        0,
-                      ],
-                    },
-                  },
-                  waiting_approval: {
-                    $sum: {
-                      $cond: [
-                        {
-                          $and: [
-                            {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.REQUESTING,
-                              ],
-                            },
-                          ],
-                        },
-                        {
-                          $cond: [
-                            { $ifNull: [poor_id, false] },
-                            {
-                              $cond: [
-                                {
-                                  $and: [
-                                    {
-                                      $eq: [
-                                        "$poor_status",
-                                        EnumConstant.ACTIVE,
-                                      ],
-                                    },
-                                    {
-                                      $eq: [
-                                        "$id_poor_timeline_type",
-                                        EnumConstant.TimelineType.IDPOOR,
-                                      ],
-                                    },
-                                  ],
-                                },
-                                1,
-                                0,
-                              ],
-                            },
-                            1,
-                          ],
-                        },
-                        0,
-                      ],
-                    },
-                  },
-                  waiting_approval_female: {
-                    $sum: {
-                      $cond: [
-                        {
-                          $and: [
-                            {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.REQUESTING,
-                              ],
-                            },
-                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
-                          ],
-                        },
-                        {
-                          $cond: [
-                            { $ifNull: [poor_id, false] },
-                            {
-                              $cond: [
-                                {
-                                  $and: [
-                                    {
-                                      $eq: [
-                                        "$poor_status",
-                                        EnumConstant.ACTIVE,
-                                      ],
-                                    },
-                                    {
-                                      $eq: [
-                                        "$id_poor_timeline_type",
-                                        EnumConstant.TimelineType.IDPOOR,
-                                      ],
-                                    },
-                                  ],
-                                },
-                                1,
-                                0,
-                              ],
-                            },
-                            1,
-                          ],
-                        },
-                        0,
-                      ],
-                    },
-                  },
-                  reject_during_waiting_approval: {
-                    $sum: {
-                      $cond: [
-                        {
-                          $and: [
-                            {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.REJECTED,
-                              ],
-                            },
-                          ],
-                        },
-                        {
-                          $cond: [
-                            { $ifNull: [poor_id, false] },
-                            {
-                              $cond: [
-                                {
-                                  $and: [
-                                    {
-                                      $eq: [
-                                        "$poor_status",
-                                        EnumConstant.ACTIVE,
-                                      ],
-                                    },
-                                    {
-                                      $eq: [
-                                        "$id_poor_timeline_type",
-                                        EnumConstant.TimelineType.IDPOOR,
-                                      ],
-                                    },
-                                  ],
-                                },
-                                1,
-                                0,
-                              ],
-                            },
-                            1,
-                          ],
-                        },
-                        0,
-                      ],
-                    },
-                  },
-                  reject_during_waiting_approval_female: {
-                    $sum: {
-                      $cond: [
-                        {
-                          $and: [
-                            {
-                              $eq: [
-                                "$request_timelines._id",
-                                EnumConstant.REJECTED,
-                              ],
-                            },
-                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
-                          ],
-                        },
-                        {
-                          $cond: [
-                            { $ifNull: [poor_id, false] },
-                            {
-                              $cond: [
-                                {
-                                  $and: [
-                                    {
-                                      $eq: [
-                                        "$poor_status",
+                                        "$id_poor_timeline_status",
                                         EnumConstant.ACTIVE,
                                       ],
                                     },
@@ -6593,34 +6612,6 @@ export default class SubjectController {
                 0,
               ],
             },
-            waiting_approval: {
-              $cond: [
-                { $ifNull: ["$waiting_approval", false] },
-                "$waiting_approval",
-                0,
-              ],
-            },
-            waiting_approval_female: {
-              $cond: [
-                { $ifNull: ["$waiting_approval_female", false] },
-                "$waiting_approval_female",
-                0,
-              ],
-            },
-            reject_during_waiting_approval: {
-              $cond: [
-                { $ifNull: ["$reject_during_waiting_approval", false] },
-                "$reject_during_waiting_approval",
-                0,
-              ],
-            },
-            reject_during_waiting_approval_female: {
-              $cond: [
-                { $ifNull: ["$reject_during_waiting_approval_female", false] },
-                "$reject_during_waiting_approval_female",
-                0,
-              ],
-            },
           },
         },
         {
@@ -6828,18 +6819,6 @@ export default class SubjectController {
             doing_internship_female: {
               $sum: "$doing_internship_female",
             },
-            waiting_approval: {
-              $sum: "$waiting_approval",
-            },
-            waiting_approval_female: {
-              $sum: "$waiting_approval_female",
-            },
-            reject_during_waiting_approval: {
-              $sum: "$reject_during_waiting_approval",
-            },
-            reject_during_waiting_approval_female: {
-              $sum: "$reject_during_waiting_approval_female",
-            },
           },
         },
         {
@@ -6904,7 +6883,6 @@ export default class SubjectController {
       "new_study_female",
       "course_new",
       "course_studying",
-      "new_waiting_studying",
       "new_waiting_studying_female",
       "waiting_studying_female",
       "id_poor_studying",
@@ -6925,16 +6903,10 @@ export default class SubjectController {
       "quit_before_evaluate_female",
       "doing_internship",
       "doing_internship_female",
-      "waiting_approval",
-      "waiting_approval_female",
-      "reject_during_waiting_approval",
-      "reject_during_waiting_approval_female",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
       "សិស្សដែលបានចុះឈ្មោះចូលរៀន",
-      "រងចាំអនុម័ត",
-      "បដិសេធពេលរងចាំអនុម័ត",
       "ចំនួនសិស្សអនុម័ត",
       "រងចាំចូលរៀនថ្មីថ្ងៃនេះ",
       "រងចាំចូលរៀន",
@@ -6967,99 +6939,89 @@ export default class SubjectController {
         });
         studentData.push({
           _id: 2,
-          total_student: sch.waiting_approval,
-          total_female: sch.waiting_approval_female,
-        });
-        studentData.push({
-          _id: 3,
-          total_student: sch.reject_during_waiting_approval,
-          total_female: sch.reject_during_waiting_approval_female,
-        });
-        studentData.push({
-          _id: 4,
           total_student: sch.scholarship_approved_student,
           total_female: sch.scholarship_approved_student_female,
         });
         studentData.push({
-          _id: 5,
+          _id: 3,
           total_student: sch.new_waiting_studying,
           total_female: sch.new_waiting_studying_female,
         });
         studentData.push({
-          _id: 6,
+          _id: 4,
           total_student: sch.waiting_studying,
           total_female: sch.waiting_studying_female,
         });
         studentData.push({
-          _id: 7,
+          _id: 5,
           total_student: sch.quit_before_studying,
           total_female: sch.quit_before_studying_female,
         });
         studentData.push({
-          _id: 8,
+          _id: 6,
           total_student: sch.quit_before_evaluate,
           total_female: sch.quit_before_evaluate_female,
         });
         studentData.push({
-          _id: 9,
+          _id: 7,
           total_student: sch.new_study,
           total_female: sch.new_study_female,
         });
         studentData.push({
-          _id: 10,
+          _id: 8,
           total_student: sch.studying,
           total_female: sch.studying_female,
         });
         // studentData.push({ _id: 7, total_student: sch.id_poor_studying, total_female: sch.id_poor_studying_female });
         studentData.push({
-          _id: 11,
+          _id: 9,
           total_student: sch.quit_during_studying,
           total_female: sch.quit_during_studying_female,
         });
         studentData.push({
-          _id: 12,
+          _id: 10,
           total_student: sch.quit_during_studying_not_enough_document,
           total_female: sch.quit_during_studying_not_enough_document_female,
         });
         studentData.push({
-          _id: 13,
+          _id: 11,
           total_student: sch.new_internship,
           total_female: sch.new_internship_female,
         });
         studentData.push({
-          _id: 14,
+          _id: 12,
           total_student: sch.internship,
           total_female: sch.internship_female,
         });
         studentData.push({
-          _id: 15,
+          _id: 13,
           total_student: sch.doing_internship,
           total_female: sch.doing_internship_female,
         });
         studentData.push({
-          _id: 16,
+          _id: 14,
           total_student: sch.finish_studying,
           total_female: sch.finish_studying_female,
           total_course_finish: sch.course_finish,
         });
         studentData.push({
-          _id: 17,
+          _id: 15,
           total_student: sch.employment,
           total_female: sch.employment_female,
         });
         studentData.push({
-          _id: 18,
+          _id: 16,
           total_student: sch.new_finish_studying,
           total_female: sch.new_finish_studying_female,
           total_new_course_finish: sch.new_course_finish,
         });
         studentData.push({
-          _id: 19,
+          _id: 17,
           total_student: sch.new_employment,
           total_female: sch.new_employment_female,
         });
         studentData.push({
-          _id: 20,
+          _id: 18,
           total_student: sch.course_studying,
           total_female: sch.course_new,
         });
@@ -7079,99 +7041,89 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 2,
-        total_student: city.waiting_approval,
-        total_female: city.waiting_approval_female,
-      });
-      studentData.push({
-        _id: 3,
-        total_student: city.reject_during_waiting_approval,
-        total_female: city.reject_during_waiting_approval_female,
-      });
-      studentData.push({
-        _id: 4,
         total_student: city.scholarship_approved_student,
         total_female: city.scholarship_approved_student_female,
       });
       studentData.push({
-        _id: 5,
+        _id: 3,
         total_student: city.new_waiting_studying,
         total_female: city.new_waiting_studying_female,
       });
       studentData.push({
-        _id: 6,
+        _id: 4,
         total_student: city.waiting_studying,
         total_female: city.waiting_studying_female,
       });
       studentData.push({
-        _id: 7,
+        _id: 5,
         total_student: city.quit_before_studying,
         total_female: city.quit_before_studying_female,
       });
       studentData.push({
-        _id: 8,
+        _id: 6,
         total_student: city.quit_before_evaluate,
         total_female: city.quit_before_evaluate_female,
       });
       studentData.push({
-        _id: 9,
+        _id: 7,
         total_student: city.new_study,
         total_female: city.new_study_female,
       });
       studentData.push({
-        _id: 10,
+        _id: 8,
         total_student: city.studying,
         total_female: city.studying_female,
       });
       // studentData.push({ _id: 7, total_student: city.id_poor_studying, total_female: city.id_poor_studying_female });
       studentData.push({
-        _id: 11,
+        _id: 9,
         total_student: city.quit_during_studying,
         total_female: city.quit_during_studying_female,
       });
       studentData.push({
-        _id: 12,
+        _id: 10,
         total_student: city.quit_during_studying_not_enough_document,
         total_female: city.quit_during_studying_not_enough_document_female,
       });
       studentData.push({
-        _id: 13,
+        _id: 11,
         total_student: city.new_internship,
         total_female: city.new_internship_female,
       });
       studentData.push({
-        _id: 14,
+        _id: 12,
         total_student: city.internship,
         total_female: city.internship_female,
       });
       studentData.push({
-        _id: 15,
+        _id: 13,
         total_student: city.doing_internship,
         total_female: city.doing_internship_female,
       });
       studentData.push({
-        _id: 16,
+        _id: 14,
         total_student: city.finish_studying,
         total_female: city.finish_studying_female,
         total_course_finish: city.course_finish,
       });
       studentData.push({
-        _id: 17,
+        _id: 15,
         total_student: city.employment,
         total_female: city.employment_female,
       });
       studentData.push({
-        _id: 18,
+        _id: 16,
         total_student: city.new_finish_studying,
         total_female: city.new_finish_studying_female,
         total_new_course_finish: city.new_course_finish,
       });
       studentData.push({
-        _id: 19,
+        _id: 17,
         total_student: city.new_employment,
         total_female: city.new_employment_female,
       });
       studentData.push({
-        _id: 20,
+        _id: 18,
         total_student: city.course_studying,
         total_female: city.course_new,
       });
@@ -7628,6 +7580,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -7685,6 +7643,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -7708,9 +7672,20 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.QUIT,
+                        $or: [
+                          {
+                            $eq: [
+                              "$courses.students.request_timelines._id",
+                              EnumConstant.QUIT,
+                            ],
+                          },
+                          {
+                            $eq: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
                         ],
                       },
                       {
@@ -7749,6 +7724,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -7772,9 +7753,20 @@ export default class SubjectController {
                   {
                     $and: [
                       {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.QUIT,
+                        $or: [
+                          {
+                            $eq: [
+                              "$courses.students.request_timelines._id",
+                              EnumConstant.QUIT,
+                            ],
+                          },
+                          {
+                            $eq: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
                         ],
                       },
                       {
@@ -7814,6 +7806,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -7878,6 +7876,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -7953,6 +7957,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -7995,6 +8005,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8048,6 +8064,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8107,6 +8129,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8177,6 +8205,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -8219,6 +8253,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8277,6 +8317,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -8325,6 +8371,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8389,6 +8441,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -8418,13 +8476,13 @@ export default class SubjectController {
                         ],
                       },
                       { $lt: ["$courses.course_end", minToday] },
-                      // {
-                      //   $ne: [
-                      //     "$courses.students.type_leavel_scholarships",
-                      //     controllers.typeLeaveScholarship.status
-                      //       .LEAVE_BEFORE_EVALUATE,
-                      //   ],
-                      // },
+                      {
+                        $ne: [
+                          "$courses.students.type_leavel_scholarships",
+                          controllers.typeLeaveScholarship.status
+                            .LEAVE_BEFORE_EVALUATE,
+                        ],
+                      },
                     ],
                   },
                   {
@@ -8437,6 +8495,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8471,13 +8535,13 @@ export default class SubjectController {
                         ],
                       },
                       { $lt: ["$courses.course_end", minToday] },
-                      // {
-                      //   $ne: [
-                      //     "$courses.students.type_leavel_scholarships",
-                      //     controllers.typeLeaveScholarship.status
-                      //       .LEAVE_BEFORE_EVALUATE,
-                      //   ],
-                      // },
+                      {
+                        $ne: [
+                          "$courses.students.type_leavel_scholarships",
+                          controllers.typeLeaveScholarship.status
+                            .LEAVE_BEFORE_EVALUATE,
+                        ],
+                      },
                       {
                         $eq: [
                           "$courses.students.gender",
@@ -8496,6 +8560,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8571,6 +8641,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8663,6 +8739,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -8694,6 +8776,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8750,6 +8838,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -8781,6 +8875,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -8837,6 +8937,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -8886,6 +8992,12 @@ export default class SubjectController {
                                   {
                                     $eq: [
                                       "$courses.students.poor_status",
+                                      EnumConstant.ACTIVE,
+                                    ],
+                                  },
+                                  {
+                                    $eq: [
+                                      "$courses.students.id_poor_timeline_status",
                                       EnumConstant.ACTIVE,
                                     ],
                                   },
@@ -8963,6 +9075,12 @@ export default class SubjectController {
                                   },
                                   {
                                     $eq: [
+                                      "$courses.students.id_poor_timeline_status",
+                                      EnumConstant.ACTIVE,
+                                    ],
+                                  },
+                                  {
+                                    $eq: [
                                       "$courses.students.id_poor_timeline_type",
                                       EnumConstant.TimelineType.IDPOOR,
                                     ],
@@ -8996,13 +9114,13 @@ export default class SubjectController {
                     $cond: [
                       {
                         $and: [
-                          // {
-                          //   $ne: [
-                          //     "$courses.students.type_leavel_scholarships",
-                          //     controllers.typeLeaveScholarship.status
-                          //       .LEAVE_BEFORE_EVALUATE,
-                          //   ],
-                          // },
+                          {
+                            $ne: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
                           { $gte: ["$courses.course_end", minToday] },
                           { $lte: ["$courses.course_end", maxToday] },
                         ],
@@ -9017,6 +9135,12 @@ export default class SubjectController {
                                   {
                                     $eq: [
                                       "$courses.students.poor_status",
+                                      EnumConstant.ACTIVE,
+                                    ],
+                                  },
+                                  {
+                                    $eq: [
+                                      "$courses.students.id_poor_timeline_status",
                                       EnumConstant.ACTIVE,
                                     ],
                                   },
@@ -9065,13 +9189,13 @@ export default class SubjectController {
                     $cond: [
                       {
                         $and: [
-                          // {
-                          //   $ne: [
-                          //     "$courses.students.type_leavel_scholarships",
-                          //     controllers.typeLeaveScholarship.status
-                          //       .LEAVE_BEFORE_EVALUATE,
-                          //   ],
-                          // },
+                          {
+                            $ne: [
+                              "$courses.students.type_leavel_scholarships",
+                              controllers.typeLeaveScholarship.status
+                                .LEAVE_BEFORE_EVALUATE,
+                            ],
+                          },
                           { $gte: ["$courses.course_end", minToday] },
                           { $lte: ["$courses.course_end", maxToday] },
                         ],
@@ -9086,6 +9210,12 @@ export default class SubjectController {
                                   {
                                     $eq: [
                                       "$courses.students.poor_status",
+                                      EnumConstant.ACTIVE,
+                                    ],
+                                  },
+                                  {
+                                    $eq: [
+                                      "$courses.students.id_poor_timeline_status",
                                       EnumConstant.ACTIVE,
                                     ],
                                   },
@@ -9130,6 +9260,12 @@ export default class SubjectController {
                                   {
                                     $eq: [
                                       "$courses.students.poor_status",
+                                      EnumConstant.ACTIVE,
+                                    ],
+                                  },
+                                  {
+                                    $eq: [
+                                      "$courses.students.id_poor_timeline_status",
                                       EnumConstant.ACTIVE,
                                     ],
                                   },
@@ -9194,6 +9330,12 @@ export default class SubjectController {
                                   },
                                   {
                                     $eq: [
+                                      "$courses.students.id_poor_timeline_status",
+                                      EnumConstant.ACTIVE,
+                                    ],
+                                  },
+                                  {
+                                    $eq: [
                                       "$courses.students.id_poor_timeline_type",
                                       EnumConstant.TimelineType.IDPOOR,
                                     ],
@@ -9243,6 +9385,12 @@ export default class SubjectController {
                               {
                                 $eq: [
                                   "$courses.students.poor_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
+                                  "$courses.students.id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
@@ -9305,6 +9453,12 @@ export default class SubjectController {
                               },
                               {
                                 $eq: [
+                                  "$courses.students.id_poor_timeline_status",
+                                  EnumConstant.ACTIVE,
+                                ],
+                              },
+                              {
+                                $eq: [
                                   "$courses.students.id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
@@ -9349,14 +9503,17 @@ export default class SubjectController {
                           {
                             $and: [
                               {
+                                $eq: ["$poor_status", EnumConstant.ACTIVE],
+                              },
+                              {
                                 $eq: [
-                                  "$courses.students.poor_status",
+                                  "$id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
                               {
                                 $eq: [
-                                  "$courses.students.id_poor_timeline_type",
+                                  "$id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
                               },
@@ -9406,206 +9563,17 @@ export default class SubjectController {
                           {
                             $and: [
                               {
+                                $eq: ["$poor_status", EnumConstant.ACTIVE],
+                              },
+                              {
                                 $eq: [
-                                  "$courses.students.poor_status",
+                                  "$id_poor_timeline_status",
                                   EnumConstant.ACTIVE,
                                 ],
                               },
                               {
                                 $eq: [
-                                  "$courses.students.id_poor_timeline_type",
-                                  EnumConstant.TimelineType.IDPOOR,
-                                ],
-                              },
-                            ],
-                          },
-                          1,
-                          0,
-                        ],
-                      },
-                      1,
-                    ],
-                  },
-                  0,
-                ],
-              },
-            },
-            waiting_approval: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    $cond: [
-                      { $ifNull: [poor_id, false] },
-                      {
-                        $cond: [
-                          {
-                            $and: [
-                              {
-                                $eq: [
-                                  "$courses.students.poor_status",
-                                  EnumConstant.ACTIVE,
-                                ],
-                              },
-                              {
-                                $eq: [
-                                  "$courses.students.id_poor_timeline_type",
-                                  EnumConstant.TimelineType.IDPOOR,
-                                ],
-                              },
-                            ],
-                          },
-                          1,
-                          0,
-                        ],
-                      },
-                      1,
-                    ],
-                  },
-                  0,
-                ],
-              },
-            },
-            waiting_approval_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$courses.students.gender",
-                          EnumConstant.Gender.FEMALE,
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    $cond: [
-                      { $ifNull: [poor_id, false] },
-                      {
-                        $cond: [
-                          {
-                            $and: [
-                              {
-                                $eq: [
-                                  "$courses.students.poor_status",
-                                  EnumConstant.ACTIVE,
-                                ],
-                              },
-                              {
-                                $eq: [
-                                  "$courses.students.id_poor_timeline_type",
-                                  EnumConstant.TimelineType.IDPOOR,
-                                ],
-                              },
-                            ],
-                          },
-                          1,
-                          0,
-                        ],
-                      },
-                      1,
-                    ],
-                  },
-                  0,
-                ],
-              },
-            },
-            reject_during_waiting_approval: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    $cond: [
-                      { $ifNull: [poor_id, false] },
-                      {
-                        $cond: [
-                          {
-                            $and: [
-                              {
-                                $eq: [
-                                  "$courses.students.poor_status",
-                                  EnumConstant.ACTIVE,
-                                ],
-                              },
-                              {
-                                $eq: [
-                                  "$courses.students.id_poor_timeline_type",
-                                  EnumConstant.TimelineType.IDPOOR,
-                                ],
-                              },
-                            ],
-                          },
-                          1,
-                          0,
-                        ],
-                      },
-                      1,
-                    ],
-                  },
-                  0,
-                ],
-              },
-            },
-            reject_during_waiting_approval_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$courses.students.request_timelines._id",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$courses.students.gender",
-                          EnumConstant.Gender.FEMALE,
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    $cond: [
-                      { $ifNull: [poor_id, false] },
-                      {
-                        $cond: [
-                          {
-                            $and: [
-                              {
-                                $eq: [
-                                  "$courses.students.poor_status",
-                                  EnumConstant.ACTIVE,
-                                ],
-                              },
-                              {
-                                $eq: [
-                                  "$courses.students.id_poor_timeline_type",
+                                  "$id_poor_timeline_type",
                                   EnumConstant.TimelineType.IDPOOR,
                                 ],
                               },
@@ -9820,18 +9788,6 @@ export default class SubjectController {
             doing_internship_female: {
               $sum: "$doing_internship_female",
             },
-            waiting_approval: {
-              $sum: "$waiting_approval",
-            },
-            waiting_approval_female: {
-              $sum: "$waiting_approval_female",
-            },
-            reject_during_waiting_approval: {
-              $sum: "$reject_during_waiting_approval",
-            },
-            reject_during_waiting_approval_female: {
-              $sum: "$reject_during_waiting_approval_female",
-            },
           },
         },
         {
@@ -9913,16 +9869,10 @@ export default class SubjectController {
       "quit_before_evaluate_female",
       "doing_internship",
       "doing_internship_female",
-      "waiting_approval",
-      "waiting_approval_female",
-      "reject_during_waiting_approval",
-      "reject_during_waiting_approval_female",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
       "សិស្សដែលបានចុះឈ្មោះចូលរៀន",
-      "រងចាំអនុម័ត",
-      "បដិសេធពេលរងចាំអនុម័ត",
       "ចំនួនសិស្សអនុម័ត",
       "រងចាំចូលរៀនថ្មីថ្ងៃនេះ",
       "រងចាំចូលរៀន",
@@ -9955,99 +9905,89 @@ export default class SubjectController {
         });
         studentData.push({
           _id: 2,
-          total_student: sch.waiting_approval,
-          total_female: sch.waiting_approval_female,
-        });
-        studentData.push({
-          _id: 3,
-          total_student: sch.reject_during_waiting_approval,
-          total_female: sch.reject_during_waiting_approval_female,
-        });
-        studentData.push({
-          _id: 4,
           total_student: sch.scholarship_approved_student,
           total_female: sch.scholarship_approved_student_female,
         });
         studentData.push({
-          _id: 5,
+          _id: 3,
           total_student: sch.new_waiting_studying,
           total_female: sch.new_waiting_studying_female,
         });
         studentData.push({
-          _id: 6,
+          _id: 4,
           total_student: sch.waiting_studying,
           total_female: sch.waiting_studying_female,
         });
         studentData.push({
-          _id: 7,
+          _id: 5,
           total_student: sch.quit_before_studying,
           total_female: sch.quit_before_studying_female,
         });
         studentData.push({
-          _id: 8,
+          _id: 6,
           total_student: sch.quit_before_evaluate,
           total_female: sch.quit_before_evaluate_female,
         });
         studentData.push({
-          _id: 9,
+          _id: 7,
           total_student: sch.new_study,
           total_female: sch.new_study_female,
         });
         studentData.push({
-          _id: 10,
+          _id: 8,
           total_student: sch.studying,
           total_female: sch.studying_female,
         });
         // studentData.push({ _id: 7, total_student: sch.id_poor_studying, total_female: sch.id_poor_studying_female });
         studentData.push({
-          _id: 11,
+          _id: 9,
           total_student: sch.quit_during_studying,
           total_female: sch.quit_during_studying_female,
         });
         studentData.push({
-          _id: 12,
+          _id: 10,
           total_student: sch.quit_during_studying_not_enough_document,
           total_female: sch.quit_during_studying_not_enough_document_female,
         });
         studentData.push({
-          _id: 13,
+          _id: 11,
           total_student: sch.new_internship,
           total_female: sch.new_internship_female,
         });
         studentData.push({
-          _id: 14,
+          _id: 12,
           total_student: sch.internship,
           total_female: sch.internship_female,
         });
         studentData.push({
-          _id: 15,
+          _id: 13,
           total_student: sch.doing_internship,
           total_female: sch.doing_internship_female,
         });
         studentData.push({
-          _id: 16,
+          _id: 14,
           total_student: sch.finish_studying,
           total_female: sch.finish_studying_female,
           total_course_finish: sch.course_finish,
         });
         studentData.push({
-          _id: 17,
+          _id: 15,
           total_student: sch.employment,
           total_female: sch.employment_female,
         });
         studentData.push({
-          _id: 18,
+          _id: 16,
           total_student: sch.new_finish_studying,
           total_female: sch.new_finish_studying_female,
           total_new_course_finish: sch.new_course_finish,
         });
         studentData.push({
-          _id: 19,
+          _id: 17,
           total_student: sch.new_employment,
           total_female: sch.new_employment_female,
         });
         studentData.push({
-          _id: 20,
+          _id: 18,
           total_student: sch.course_studying,
           total_female: sch.course_new,
         });
@@ -10067,99 +10007,89 @@ export default class SubjectController {
       });
       studentData.push({
         _id: 2,
-        total_student: city.waiting_approval,
-        total_female: city.waiting_approval_female,
-      });
-      studentData.push({
-        _id: 3,
-        total_student: city.reject_during_waiting_approval,
-        total_female: city.reject_during_waiting_approval_female,
-      });
-      studentData.push({
-        _id: 4,
         total_student: city.scholarship_approved_student,
         total_female: city.scholarship_approved_student_female,
       });
       studentData.push({
-        _id: 5,
+        _id: 3,
         total_student: city.new_waiting_studying,
         total_female: city.new_waiting_studying_female,
       });
       studentData.push({
-        _id: 6,
+        _id: 4,
         total_student: city.waiting_studying,
         total_female: city.waiting_studying_female,
       });
       studentData.push({
-        _id: 7,
+        _id: 5,
         total_student: city.quit_before_studying,
         total_female: city.quit_before_studying_female,
       });
       studentData.push({
-        _id: 8,
+        _id: 6,
         total_student: city.quit_before_evaluate,
         total_female: city.quit_before_evaluate_female,
       });
       studentData.push({
-        _id: 9,
+        _id: 7,
         total_student: city.new_study,
         total_female: city.new_study_female,
       });
       studentData.push({
-        _id: 10,
+        _id: 8,
         total_student: city.studying,
         total_female: city.studying_female,
       });
       // studentData.push({ _id: 7, total_student: city.id_poor_studying, total_female: city.id_poor_studying_female });
       studentData.push({
-        _id: 11,
+        _id: 9,
         total_student: city.quit_during_studying,
         total_female: city.quit_during_studying_female,
       });
       studentData.push({
-        _id: 12,
+        _id: 10,
         total_student: city.quit_during_studying_not_enough_document,
         total_female: city.quit_during_studying_not_enough_document_female,
       });
       studentData.push({
-        _id: 13,
+        _id: 11,
         total_student: city.new_internship,
         total_female: city.new_internship_female,
       });
       studentData.push({
-        _id: 14,
+        _id: 12,
         total_student: city.internship,
         total_female: city.internship_female,
       });
       studentData.push({
-        _id: 15,
+        _id: 13,
         total_student: city.doing_internship,
         total_female: city.doing_internship_female,
       });
       studentData.push({
-        _id: 16,
+        _id: 14,
         total_student: city.finish_studying,
         total_female: city.finish_studying_female,
         total_course_finish: city.course_finish,
       });
       studentData.push({
-        _id: 17,
+        _id: 15,
         total_student: city.employment,
         total_female: city.employment_female,
       });
       studentData.push({
-        _id: 18,
+        _id: 16,
         total_student: city.new_finish_studying,
         total_female: city.new_finish_studying_female,
         total_new_course_finish: city.new_course_finish,
       });
       studentData.push({
-        _id: 19,
+        _id: 17,
         total_student: city.new_employment,
         total_female: city.new_employment_female,
       });
       studentData.push({
-        _id: 20,
+        _id: 18,
         total_student: city.course_studying,
         total_female: city.course_new,
       });
@@ -15692,464 +15622,6 @@ export default class SubjectController {
       },
     ]);
 
-    let json = CommonUtil.JSONParse(getData);
-    return [json, count];
-  }
-  async studentPoorIdByCityProvince(req: any) {
-    let { schools, city_provinces, scholarship_status } = req.query;
-
-    let matchStudent: any = {
-      status: EnumConstant.ACTIVE,
-    };
-
-    if (req.body._user.schools) {
-      schools = req.body._user.schools;
-    }
-
-    if (schools) {
-      matchStudent.schools = new ObjectId(schools);
-    }
-    let matchCity: any = {};
-    if (city_provinces) {
-      matchCity.city_provinces = Number(city_provinces);
-    }
-
-    let endDate = new Date(req.query.end_date);
-
-    let matchScholarshipStatus: any = {};
-    if (scholarship_status) {
-      matchScholarshipStatus.scholarship_status = Number(scholarship_status);
-    }
-    let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
-    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
-    console.log(matchScholarshipStatus);
-
-    let data = await models.school
-      .aggregate([
-        {
-          $match: matchStudent,
-        },
-        {
-          $lookup: {
-            from: "students",
-            let: { schoolId: "$_id", timelineCreatedAt: "$createdAt" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $eq: ["$schools", "$$schoolId"],
-                  },
-                  poor_id: { $exists: true },
-                  ...matchStudent,
-                },
-              },
-              {
-                $lookup: {
-                  from: "courses",
-                  let: { courseId: "$courses" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$_id", "$$courseId"],
-                        },
-                      },
-                    },
-                  ],
-                  as: "courses",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$courses",
-                },
-              },
-              {
-                $lookup: {
-                  from: "request_timelines",
-                  let: { studentId: "$_id" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$students", "$$studentId"],
-                        },
-                        timeline_type: EnumConstant.TimelineType.SCHOLARSHIP,
-                        createdAt: { $lte: endDate },
-                        // ...query
-                      },
-                    },
-                    { $sort: { createdAt: -1 } },
-                    { $limit: 1 },
-                    {
-                      $project: {
-                        _id: {
-                          $cond: {
-                            if: {
-                              $eq: ["$status", EnumConstant.RESUME_STUDY],
-                            },
-                            then: EnumConstant.ACTIVE,
-                            else: "$status",
-                          },
-                        },
-                        createdAt: 1,
-                      },
-                    },
-                  ],
-                  as: "request_timelines",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$request_timelines",
-                },
-              },
-              {
-                $addFields: {
-                  scholarship_status: {
-                    $cond: {
-                      if: {
-                        $eq: ["$scholarship_status", EnumConstant.ACTIVE],
-                      },
-                      then: {
-                        $cond: {
-                          if: { $gt: ["$courses.course_start", maxToday] },
-                          then: EnumConstant.waiting,
-                          else: {
-                            $cond: {
-                              if: { $lt: ["$courses.course_end", minToday] },
-                              then: EnumConstant.FINISHED_STUDY,
-                              else: "$scholarship_status",
-                            },
-                          },
-                        },
-                      },
-                      else: "$scholarship_status",
-                    },
-                  },
-                },
-              },
-              {
-                $match: { ...matchScholarshipStatus },
-              },
-              {
-                $lookup: {
-                  from: "city_provinces",
-                  let: { studentAddr: "$address.city_provinces" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$_id", "$$studentAddr"],
-                        },
-                      },
-                    },
-                  ],
-                  as: "city_provinces",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$city_provinces",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "districts",
-                  let: { studentDistrict: "$address.districts" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$_id", "$$studentDistrict"],
-                        },
-                      },
-                    },
-                  ],
-                  as: "districts",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$districts",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $group: {
-                  _id: {
-                    city_id: "$city_provinces._id",
-                    district_id: "$districts._id",
-                  },
-                  city_name: { $first: "$city_provinces.name" },
-                  district_name: { $first: "$districts.name" },
-                  total_apply: { $sum: 1 },
-                  total_apply_female: {
-                    $sum: {
-                      $cond: [
-                        {
-                          $eq: ["$gender", EnumConstant.Gender.FEMALE],
-                        },
-                        1,
-                        0,
-                      ],
-                    },
-                  },
-                },
-              },
-              {
-                $group: {
-                  _id: "$_id.city_id",
-                  city_name: { $first: "$city_name" },
-                  districts: {
-                    $push: {
-                      name: "$district_name",
-                      total_apply: "$total_apply",
-                      total_apply_female: "$total_apply_female",
-                    },
-                  },
-                  total_apply: { $sum: "$total_apply" },
-                  total_apply_female: { $sum: "$total_apply_female" },
-                },
-              },
-            ],
-            as: "students",
-          },
-        },
-        {
-          $unwind: {
-            path: "$students",
-          },
-        },
-        {
-          $sort: {
-            "students.city_name": -1,
-            "students._id": 1,
-          },
-        },
-        {
-          $group: {
-            _id: "$_id",
-            schools: { $first: "$name" },
-            city_provinces: { $first: "$address.city_provinces" },
-            students: { $push: "$students" },
-            total_apply: { $sum: "$students.total_apply" },
-            total_apply_female: { $sum: "$students.total_apply_female" },
-          },
-        },
-        {
-          $match: { ...matchCity },
-        },
-        {
-          $sort: { createdAt: 1 },
-        },
-      ])
-      .allowDiskUse(true);
-
-    let jsonData = CommonUtil.JSONParse(data);
-    let keyToRemove = ["total_apply", "total_apply_female"];
-    let headerColumns: any[] = [];
-    let headerTitle: any = ["សិ្ថតិនៃសិស្សបណ្តាលខេត្ត និង ស្រុក"];
-    for (var i = 0; i < headerTitle.length; i++) {
-      headerColumns.push({ _id: i + 1, name: headerTitle[i] });
-    }
-    for (let i = 0; i < jsonData?.length; i++) {
-      for (
-        let student = 0;
-        student < jsonData[i]?.students?.length;
-        student++
-      ) {
-        for (
-          let district = 0;
-          district < jsonData[i].students[student]?.districts?.length;
-          district++
-        ) {
-          let studentData: any[] = [];
-          let sch = jsonData[i]?.students[student]?.districts[district];
-          studentData.push({
-            _id: 1,
-            total_student: sch.total_apply,
-            total_female: sch.total_apply_female,
-          });
-
-          jsonData[i].students[student].districts[district].student_data =
-            studentData;
-          jsonData[i].students[student].districts[district] =
-            CommonUtil.removeKeys(
-              jsonData[i]?.students[student]?.districts[district],
-              keyToRemove
-            );
-        }
-        let studentData: any[] = [];
-        let city = jsonData[i]?.students[student];
-        studentData.push({
-          _id: 1,
-          total_student: city.total_apply,
-          total_female: city.total_apply_female,
-        });
-        jsonData[i].students[student].student_data = studentData;
-        jsonData[i].students[student] = CommonUtil.removeKeys(
-          jsonData[i]?.students[student],
-          keyToRemove
-        );
-      }
-      let studentData: any[] = [];
-      let school = jsonData[i];
-      studentData.push({
-        _id: 1,
-        total_student: school.total_apply,
-        total_female: school.total_apply_female,
-      });
-      jsonData[i].student_data = studentData;
-      jsonData[i] = CommonUtil.removeKeys(jsonData[i], keyToRemove);
-    }
-
-    return {
-      // start_date: startDate,
-      // start_end: endDate,
-      header_columns: headerColumns,
-      report_data: jsonData,
-      total_data: this.totalValue(headerColumns, jsonData),
-    };
-  }
-
-  async occupationStudentReport(req: any) {
-    let { schools } = req.query;
-    let [skip, limit] = controllers.student.skipLimit(req);
-
-    let endDate = new Date(req.query.end_date);
-
-    let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
-    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
-
-    let matchStudent: any = {
-      status: EnumConstant.ACTIVE,
-      scholarship_status: { $in: [EnumConstant.ACTIVE] },
-    };
-
-    if (req.body._user.schools) {
-      schools = req.body._user.schools;
-    }
-
-    if (schools) {
-      matchStudent.schools = new ObjectId(schools);
-    }
-
-    let data = await models.student
-      .aggregate([
-        {
-          $match: {
-            ...matchStudent,
-          },
-        },
-        {
-          $lookup: {
-            from: "courses",
-            let: { courseId: "$courses" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $eq: ["$_id", "$$courseId"],
-                  },
-                  status: { $ne: EnumConstant.DELETE },
-                  course_end: { $lt: minToday },
-                },
-              },
-            ],
-            as: "courses",
-          },
-        },
-        {
-          $unwind: { path: "$courses" },
-        },
-        {
-          $lookup: {
-            from: "request_timelines",
-            let: { studentId: "$_id" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $eq: ["$students", "$$studentId"],
-                  },
-                  status: EnumConstant.ACTIVE,
-                  timeline_type: EnumConstant.TimelineType.SCHOLARSHIP,
-                  createdAt: { $lte: endDate },
-                },
-              },
-              { $sort: { createdAt: -1 } },
-              { $limit: 1 },
-              {
-                $project: {
-                  _id: {
-                    $cond: {
-                      if: {
-                        $eq: ["$status", EnumConstant.RESUME_STUDY],
-                      },
-                      then: EnumConstant.ACTIVE,
-                      else: "$status",
-                    },
-                  },
-                  createdAt: 1,
-                },
-              },
-            ],
-            as: "request_timelines",
-          },
-        },
-        {
-          $unwind: { path: "$request_timelines" },
-        },
-        {
-          $lookup: {
-            from: "student_occupations",
-            let: { studentId: "$_id" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $eq: ["$students", "$$studentId"],
-                  },
-                },
-              },
-              { $sort: { createdAt: -1 } },
-              { $limit: 1 },
-            ],
-            as: "student_occupations",
-          },
-        },
-        {
-          $unwind: {
-            path: "$student_occupations",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
-          $facet: {
-            result: [
-              { $skip: skip },
-              ...(limit > 0 ? [{ $limit: limit }] : []),
-            ],
-            totalCount: [
-              {
-                $count: "count",
-              },
-            ],
-          },
-        },
-      ])
-      .allowDiskUse(true);
-
-    let [getData, count] = await controllers.student.facetData(data, [
-      {
-        path: "schools",
-        select: "name name_en profile_image",
-        model: "schools",
-      },
-      { path: "courses.apply_majors", select: "name", model: "skills" },
-    ]);
     let json = CommonUtil.JSONParse(getData);
     return [json, count];
   }
