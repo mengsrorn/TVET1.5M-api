@@ -77,11 +77,11 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
     ]);
     controllers.applyMajor.checkThrowNotFound(getMajor);
     controllers.shift.checkThrowNotFound(checkShift);
-    if (checkCourse) {
+    /*if (checkCourse) {
       this.throwHttpError(
         "ថ្ងៃទទួលពាក្យស្ទួនជាកូដសម្គាល់៖ " + checkCourse.code
       );
-    }
+    }*/
   }
 
   async update(req: any) {

@@ -10,10 +10,13 @@ export default class UserTokenController extends AbstractController<IUser_tokens
         super(model);
         this.model = model;
     }
-    public async createToken(token: string, users: string, device_os: string, device_name: string) {
+    public async createToken(token: string, users: string, req: any) {
         let expAt = (Number(refresh_token_duration_as_day) * 24 * 60 * 60 * 1000) + new Date().getTime();
-        let create = new this.model({ token: token, users: users, device_os: device_os, device_name: device_name, status: 1, create_at: new Date(), expire_at: expAt });
-        return this.model.create(create);
+        let modelData = new this.model({ token: token, users: users, status: 1, create_at: new Date(), expire_at: expAt });
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        modelData.public_ip = ip;
+        modelData.user_agent = req.headers['user-agent'];
+        return this.model.create(modelData);
     }
     public async getToken(token: string): Promise<IUser_tokens> {
         let getToken = await this.model.findOne({ token: token, status: 1 });
@@ -34,5 +37,9 @@ export default class UserTokenController extends AbstractController<IUser_tokens
     }
     public async deleletOtherDeviceToken(token: string, device: string) {
         
+    }
+
+    public async disableAllTokens(user: string) {
+        return this.model.updateMany({ users: user }, { $set: { status: -1 } });
     }
 }
