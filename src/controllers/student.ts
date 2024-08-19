@@ -445,13 +445,6 @@ export default class Controller extends AbstractController<IStudents> {
         })
         controllers.student.checkThrowNotFound(getStudent);
         let response = CommonUtil.JSONParse(getStudent);
-
-        response.date_of_birth = new Date(response.date_of_birth).toLocaleDateString("en-CA")
-        response.courses.registation_start = new Date(response.courses.registation_start).toLocaleDateString("en-CA")
-        response.courses.registation_end = new Date(response.courses.registation_end).toLocaleDateString("en-CA")
-        response.courses.course_start = new Date(response.courses.course_start).toLocaleDateString("en-CA")
-        response.courses.course_end = new Date(response.courses.course_end).toLocaleDateString("en-CA")
-
         if (response.ethnicity) {
             response.ethnicity.name_en = response.ethnicity.nationality_en;
             response.ethnicity.name = response.ethnicity.nationality;

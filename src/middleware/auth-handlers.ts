@@ -41,7 +41,7 @@ export default class AuthHandlers {
                     return res.status(400).json(CommonUtil.makeCustomResponse({ error_code: 1, message: "Unauthorized." }));
                 }
                 const [token, refresh_token] = generateToken(user._id, user.username);
-                controllers.userToken.createToken(refresh_token, user._id, req.body.device_os, req.body.device_name);
+                controllers.userToken.createToken(refresh_token, user._id, req);
                 let getAcc = user.staffs != null ? user.staffs : user.students;
                 res.status(200).json({
                     data: {

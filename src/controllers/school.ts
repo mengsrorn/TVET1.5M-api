@@ -15,6 +15,7 @@ export default class SchoolController extends AbstractController<ISchools> {
     async create(req: any) {
         let { username, password, first_name, last_name } = req.body;
         let jsonData = new this.model(req.body);
+        jsonData.type_projects = EnumConstant.TypeProject.scholarship;
         let [checkExist, checkUsername] = await Promise.all([ //countMajor
             this.checkNameExist({ req }),
             controllers.user.checkUsername(username),
@@ -95,7 +96,8 @@ export default class SchoolController extends AbstractController<ISchools> {
         let { search, city_provinces } = req.query;
         let [skip, limit] = this.skipLimit(req);
         let query: any = {
-            status: EnumConstant.ACTIVE
+            status: EnumConstant.ACTIVE,
+            type_projects: EnumConstant.TypeProject.scholarship,
         }
         if (req.body._user) {
             if (req.body._user.schools) {
@@ -429,6 +431,7 @@ export default class SchoolController extends AbstractController<ISchools> {
             {
                 $match: {
                     status: EnumConstant.ACTIVE,
+                    type_projects: EnumConstant.TypeProject.scholarship,
                 }
             },
             {
@@ -616,6 +619,7 @@ export default class SchoolController extends AbstractController<ISchools> {
             {
                 $match: {
                     status: EnumConstant.ACTIVE, 
+                    type_projects: EnumConstant.TypeProject.scholarship,
                 }
             },
             {

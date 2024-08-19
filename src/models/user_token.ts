@@ -9,7 +9,9 @@ export interface IUser_tokens{
     device_os: string,
     device_name: string,
     create_at: Date,
-    expire_at: number,
+    expire_at: number;
+    public_ip: String;
+    user_agent: string;
 }
 const schema = new Schema({
     token: String,
@@ -19,6 +21,8 @@ const schema = new Schema({
     device_name: String,
     create_at: Date,
     expire_at: Number,
+    user_agent: String,
+    public_ip: String,
 }, { timestamps: true});
  
 

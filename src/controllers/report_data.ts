@@ -5,7 +5,9 @@ import CommonUtil from "../utils/common";
 
 export default class SubjectController {
   async filterDataApprovedList(req: any) {
-    let query: any = {};
+    let query: any = {
+      type_projects: EnumConstant.TypeProject.scholarship,
+    };
     if (req.body._user.schools) {
       query._id = req.body._user.schools;
     }
@@ -485,6 +487,7 @@ export default class SubjectController {
   async filterData(req: any) {
     let querySchool: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (req.body._user.schools) {
       querySchool._id = req.body._user.schools;
@@ -560,6 +563,7 @@ export default class SubjectController {
     let { apply_majors, shifts, schools, type_poverty_status } = req.query;
     let querySchool: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (schools) {
       querySchool._id = new ObjectId(schools);
@@ -1504,6 +1508,7 @@ export default class SubjectController {
     let { apply_majors, shifts, schools, type_poverty_status } = req.query;
     let querySchool: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (schools) {
       querySchool._id = new ObjectId(schools);
@@ -2702,6 +2707,7 @@ export default class SubjectController {
     let { apply_majors, shifts, schools, type_poverty_status } = req.query;
     let querySchool: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (schools) {
       querySchool._id = new ObjectId(schools);
@@ -3483,6 +3489,7 @@ export default class SubjectController {
     let { apply_majors, shifts, schools, type_poverty_status } = req.query;
     let querySchool: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (schools) {
       querySchool._id = new ObjectId(schools);
@@ -4078,6 +4085,7 @@ export default class SubjectController {
 
     let querySchool: any = {
       status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
     };
     if (schools) {
       querySchool._id = new ObjectId(schools);

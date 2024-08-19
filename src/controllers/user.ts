@@ -81,6 +81,7 @@ export default class UserController extends AbstractController<IUsers> {
         controllers.staff.checkThrowNotFound(getStaff);
         const new_password_hash = await this.hashPassword(new_password);
         await this.model.findOneAndUpdate({ staffs: getStaff._id }, { $set: { password: new_password_hash } }, { new: true });
+        await controllers.userToken.disableAllTokens(getStaff.users);
         return { message: "password reset"}
     }
 
