@@ -7228,7 +7228,7 @@ export default class SubjectController {
                               $and: [
                                 {
                                   $in:[
-                                    "$courses.students.poor_status",
+                                    "$courses.students.request_timelines_id_poor._id",
                                     poor_id_status,
                                   ]
                                 },
@@ -7278,7 +7278,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in:[
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ]
                               },
@@ -7323,7 +7323,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7374,7 +7374,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7432,7 +7432,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7496,7 +7496,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7554,7 +7554,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7618,7 +7618,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7659,7 +7659,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7706,7 +7706,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7759,7 +7759,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7818,7 +7818,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7859,7 +7859,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -7906,7 +7906,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8065,7 +8065,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8118,7 +8118,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8187,7 +8187,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8268,7 +8268,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8298,7 +8298,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8343,7 +8343,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8373,7 +8373,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8418,7 +8418,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8466,7 +8466,7 @@ export default class SubjectController {
                                 $and: [
                                   {
                                     $in: [
-                                      "$courses.students.poor_status",
+                                      "$courses.students.request_timelines_id_poor._id",
                                       poor_id_status,
                                     ],
                                   },
@@ -8532,7 +8532,7 @@ export default class SubjectController {
                                 $and: [
                                   {
                                     $in: [
-                                      "$courses.students.poor_status",
+                                      "$courses.students.request_timelines_id_poor._id",
                                       poor_id_status,
                                     ],
                                   },
@@ -8585,7 +8585,7 @@ export default class SubjectController {
                                 $and: [
                                   {
                                     $in: [
-                                      "$courses.students.poor_status",
+                                      "$courses.students.request_timelines_id_poor._id",
                                       poor_id_status,
                                     ],
                                   },
@@ -8648,7 +8648,7 @@ export default class SubjectController {
                                 $and: [
                                   {
                                     $in: [
-                                      "$courses.students.poor_status",
+                                      "$courses.students.request_timelines_id_poor._id",
                                       poor_id_status,
                                     ],
                                   },
@@ -8686,7 +8686,7 @@ export default class SubjectController {
                                 $and: [
                                   {
                                     $in: [
-                                      "$courses.students.poor_status",
+                                      "$courses.students.request_timelines_id_poor._id",
                                       poor_id_status,
                                     ],
                                   },
@@ -8739,7 +8739,7 @@ export default class SubjectController {
                                 $and: [
                                   {
                                     $in: [
-                                      "$courses.students.poor_status",
+                                      "$courses.students.request_timelines_id_poor._id",
                                       poor_id_status,
                                     ],
                                   },
@@ -8787,7 +8787,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8838,7 +8838,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8883,7 +8883,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
@@ -8934,7 +8934,7 @@ export default class SubjectController {
                             $and: [
                               {
                                 $in: [
-                                  "$courses.students.poor_status",
+                                  "$courses.students.request_timelines_id_poor._id",
                                   poor_id_status,
                                 ],
                               },
