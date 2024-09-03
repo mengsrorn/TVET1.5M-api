@@ -11,7 +11,7 @@ export default class SubjectController {
     if (req.body._user.schools) {
       query._id = req.body._user.schools;
     }
-    let [schools, shifts, province] = await Promise.all([
+    let [schools, shifts, province, districts, communes] = await Promise.all([
       controllers.school.getManyNoCount({
         query: query,
         select: "name name_en profile_image",
@@ -23,7 +23,10 @@ export default class SubjectController {
       controllers.address.getManyNoCount({
         select: "name name_en",
       }),
+      controllers.address.getDistrictByCityId(req.query.city_provinces || null),
+      controllers.address.getCommuneByDistrictId(req.query.districts || null),
     ]);
+  
     return {
       schools: schools,
       shifts,
@@ -37,6 +40,8 @@ export default class SubjectController {
       student_occupations: ["មានការងារ"],
       student_internships: ["កំពុងកម្មសិក្សា"],
       city_provinces: province,
+      districts: districts,
+      communes: communes,
     };
   }
   async approvedList(req: any) {
@@ -46,12 +51,15 @@ export default class SubjectController {
       scholarship_status,
       student_occupations,
       city_provinces,
+      districts,
+      communes
     } = req.query;
     let [skip, limit] = controllers.student.skipLimit(req);
     let [startDate, endDate] = CommonUtil.parseStartDateEndDate(
       req.query.start_date,
       req.query.end_date
     );
+
     let matchStudent: any = {
       status: EnumConstant.ACTIVE,
     };
@@ -84,13 +92,24 @@ export default class SubjectController {
     let matchStudentOccupations: any = {};
 
     if (student_occupations) {
-      matchStudentOccupations.student_occupations = { $exists: true, $ne: [] };
+      matchStudentOccupations['student_occupations.has_job'] = { $eq: EnumConstant.ACTIVE};
     }
 
     let matchCityProvince: any = {};
     if (city_provinces) {
       matchCityProvince["address.city_provinces"] = Number(city_provinces);
     }
+
+    let matchDistrict: any = {};
+    if(city_provinces && districts) {
+      matchDistrict["address.districts"] = Number(districts);
+    }
+
+    let matchCommune: any = {};
+    if (districts && communes) {
+      matchCommune["address.communes"] = Number(communes);
+    }
+
 
     let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
     let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
@@ -145,7 +164,7 @@ export default class SubjectController {
                     {
                       $match: {
                         $expr: { $eq: ["$students", "$$studentId"] },
-                        has_job: 1,
+                        status: EnumConstant.ACTIVE
                       },
                     },
                     { $sort: { createdAt: -1 } },
@@ -296,6 +315,8 @@ export default class SubjectController {
             ...matchScholarshipStatus,
             ...matchStudentOccupations,
             ...matchCityProvince,
+            ...matchDistrict,
+            ...matchCommune
           },
         },
 
@@ -4297,6 +4318,7 @@ export default class SubjectController {
                         has_job: EnumConstant.ACTIVE,
                       },
                     },
+                    { $sort: { createdAt: -1 } },
                     { $limit: 1 },
                   ],
                   as: "student_occupations",
@@ -7134,6 +7156,7 @@ export default class SubjectController {
                               has_job: EnumConstant.ACTIVE,
                             },
                           },
+                          { $sort: { createdAt: -1 } },
                           { $limit: 1 },
                         ],
                         as: "student_occupations",
@@ -9834,6 +9857,7 @@ export default class SubjectController {
                         has_job: EnumConstant.ACTIVE,
                       },
                     },
+                    { $sort: { createdAt: -1 } },
                     { $limit: 1 },
                   ],
                   as: "student_occupations",
@@ -15107,5 +15131,1353 @@ export default class SubjectController {
 
     let json = CommonUtil.JSONParse(getData);
     return [json, count];
+  }
+  async studentPoorIdByCityProvince(req: any) {
+    let { schools, city_provinces, scholarship_status } = req.query;
+
+    let matchStudent: any = {
+      status: EnumConstant.ACTIVE,
+    };
+
+    if (req.body._user.schools) {
+      schools = req.body._user.schools;
+    }
+
+    if (schools) {
+      matchStudent.schools = new ObjectId(schools);
+    }
+
+    let matchCity: any = {};
+    if (city_provinces) {
+      matchCity.city_provinces = Number(city_provinces);
+    }
+
+    let endDate = new Date(req.query.end_date);
+
+    let matchScholarshipStatus: any = {};
+    if (scholarship_status) {
+      matchScholarshipStatus.scholarship_status = Number(scholarship_status);
+    }
+    let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
+    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
+
+    let data = await models.school
+      .aggregate([
+        {
+          $lookup: {
+            from: "students",
+            let: { schoolId: "$_id", timelineCreatedAt: "$createdAt" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$schools", "$$schoolId"],
+                  },
+                  poor_id: { $exists: true },
+                  ...matchStudent,
+                },
+              },
+              {
+                $lookup: {
+                  from: "courses",
+                  let: { courseId: "$courses" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $eq: ["$_id", "$$courseId"],
+                        },
+                      },
+                    },
+                  ],
+                  as: "courses",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$courses",
+                },
+              },
+              {
+                $lookup: {
+                  from: "request_timelines",
+                  let: { studentId: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $eq: ["$students", "$$studentId"],
+                        },
+                        timeline_type: EnumConstant.TimelineType.SCHOLARSHIP,
+                        createdAt: { $lte: endDate },
+                        // ...query
+                      },
+                    },
+                    { $sort: { createdAt: -1 } },
+                    { $limit: 1 },
+                    {
+                      $project: {
+                        _id: {
+                          $cond: {
+                            if: {
+                              $eq: ["$status", EnumConstant.RESUME_STUDY],
+                            },
+                            then: EnumConstant.ACTIVE,
+                            else: "$status",
+                          },
+                        },
+                        createdAt: 1,
+                      },
+                    },
+                  ],
+                  as: "request_timelines",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$request_timelines",
+                },
+              },
+              {
+                $addFields: {
+                  scholarship_status: {
+                    $cond: {
+                      if: {
+                        $eq: ["$scholarship_status", EnumConstant.ACTIVE],
+                      },
+                      then: {
+                        $cond: {
+                          if: { $gt: ["$courses.course_start", maxToday] },
+                          then: EnumConstant.waiting,
+                          else: {
+                            $cond: {
+                              if: { $lt: ["$courses.course_end", minToday] },
+                              then: EnumConstant.FINISHED_STUDY,
+                              else: "$scholarship_status",
+                            },
+                          },
+                        },
+                      },
+                      else: "$scholarship_status",
+                    },
+                  },
+                },
+              },
+              {
+                $match: { ...matchScholarshipStatus },
+              },
+              {
+                $lookup: {
+                  from: "city_provinces",
+                  let: { studentAddr: "$address.city_provinces" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $eq: ["$_id", "$$studentAddr"],
+                        },
+                      },
+                    },
+                  ],
+                  as: "city_provinces",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$city_provinces",
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $lookup: {
+                  from: "districts",
+                  let: { studentDistrict: "$address.districts" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $eq: ["$_id", "$$studentDistrict"],
+                        },
+                      },
+                    },
+                  ],
+                  as: "districts",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$districts",
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $group: {
+                  _id: {
+                    city_id: "$city_provinces._id",
+                    district_id: "$districts._id",
+                  },
+                  city_name: { $first: "$city_provinces.name" },
+                  district_name: { $first: "$districts.name" },
+                  total_apply: { $sum: 1 },
+                  total_apply_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+              {
+                $group: {
+                  _id: "$_id.city_id",
+                  city_name: { $first: "$city_name" },
+                  districts: {
+                    $push: {
+                      name: "$district_name",
+                      total_apply: "$total_apply",
+                      total_apply_female: "$total_apply_female",
+                    },
+                  },
+                  total_apply: { $sum: "$total_apply" },
+                  total_apply_female: { $sum: "$total_apply_female" },
+                },
+              },
+            ],
+            as: "students",
+          },
+        },
+        {
+          $unwind: {
+            path: "$students",
+          },
+        },
+        {
+          $sort: {
+            "students.city_name": -1,
+            "students._id": 1,
+          },
+        },
+        {
+          $group: {
+            _id: "$_id",
+            schools: { $first: "$name" },
+            city_provinces: { $first: "$address.city_provinces" },
+            students: { $push: "$students" },
+            total_apply: { $sum: "$students.total_apply" },
+            total_apply_female: { $sum: "$students.total_apply_female" },
+          },
+        },
+        {
+          $match: { ...matchCity },
+        },
+        {
+          $sort: { createdAt: 1 },
+        },
+      ])
+      .allowDiskUse(true);
+
+    let jsonData = CommonUtil.JSONParse(data);
+    let keyToRemove = ["total_apply", "total_apply_female"];
+    let headerColumns: any[] = [];
+    let headerTitle: any = ["សិ្ថតិនៃសិស្សបណ្តាលខេត្ត និង ស្រុក"];
+    for (var i = 0; i < headerTitle.length; i++) {
+      headerColumns.push({ _id: i + 1, name: headerTitle[i] });
+    }
+    for (let i = 0; i < jsonData?.length; i++) {
+      for (
+        let student = 0;
+        student < jsonData[i]?.students?.length;
+        student++
+      ) {
+        for (
+          let district = 0;
+          district < jsonData[i].students[student]?.districts?.length;
+          district++
+        ) {
+          let studentData: any[] = [];
+          let sch = jsonData[i]?.students[student]?.districts[district];
+          studentData.push({
+            _id: 1,
+            total_student: sch.total_apply,
+            total_female: sch.total_apply_female,
+          });
+
+          jsonData[i].students[student].districts[district].student_data =
+            studentData;
+          jsonData[i].students[student].districts[district] =
+            CommonUtil.removeKeys(
+              jsonData[i]?.students[student]?.districts[district],
+              keyToRemove
+            );
+        }
+        let studentData: any[] = [];
+        let city = jsonData[i]?.students[student];
+        studentData.push({
+          _id: 1,
+          total_student: city.total_apply,
+          total_female: city.total_apply_female,
+        });
+        jsonData[i].students[student].student_data = studentData;
+        jsonData[i].students[student] = CommonUtil.removeKeys(
+          jsonData[i]?.students[student],
+          keyToRemove
+        );
+      }
+      let studentData: any[] = [];
+      let school = jsonData[i];
+      studentData.push({
+        _id: 1,
+        total_student: school.total_apply,
+        total_female: school.total_apply_female,
+      });
+      jsonData[i].student_data = studentData;
+      jsonData[i] = CommonUtil.removeKeys(jsonData[i], keyToRemove);
+    }
+
+    return {
+      // start_date: startDate,
+      // start_end: endDate,
+      header_columns: headerColumns,
+      report_data: jsonData,
+      total_data: this.totalValue(headerColumns, jsonData),
+    };
+  }
+
+
+  async occupationStudentReport(req: any) {
+    let { schools, student_occupations } = req.query;
+    let [skip, limit] = controllers.student.skipLimit(req);
+
+    let endDate = new Date(req.query.end_date);
+
+    let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
+    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
+
+    let matchStudent: any = {
+      status: EnumConstant.ACTIVE,
+      scholarship_status: { $in: [EnumConstant.ACTIVE] },
+    };
+
+    if (req.body._user.schools) {
+      schools = req.body._user.schools;
+    }
+
+    if (schools) {
+      matchStudent.schools = new ObjectId(schools);
+    }
+
+    let matchStudentOccupations: any = {};
+    if (student_occupations) {
+      matchStudentOccupations['student_occupations.has_job'] = { $eq: EnumConstant.ACTIVE };
+    }
+  
+    let data = await models.student
+        .aggregate([
+          {
+            $match: {
+              ...matchStudent,
+            },
+          },
+          {
+            $lookup: {
+              from: "courses",
+              let: { courseId: "$courses" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$_id", "$$courseId"],
+                    },
+                    status: { $ne: EnumConstant.DELETE },
+                    course_end: { $lt: minToday },
+                  },
+                },
+                {
+                  $lookup: {
+                    from: "skills",
+                    let: { applyMajorId: "$apply_majors" },
+                    pipeline: [
+                      {
+                        $match: {
+                          $expr: {
+                            $eq: ["$_id", "$$applyMajorId"],
+                          },
+                        },
+                      },
+                      {
+                        $project: {
+                          name: 1,
+                          name_en: 1,
+                          sectors: 1,
+                        },
+                      },
+                    ],
+                    as: "apply_majors",
+                  },
+                },
+                {
+                  $unwind: { path: "$apply_majors" }
+                }
+              ],
+              as: "courses",
+            },
+          },
+          {
+            $unwind: { path: "$courses" },
+          },
+          {
+            $lookup: {
+              from: "request_timelines",
+              let: { studentId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$students", "$$studentId"],
+                    },
+                    status: EnumConstant.ACTIVE,
+                    timeline_type: EnumConstant.TimelineType.SCHOLARSHIP,
+                    createdAt: { $lte: endDate },
+                  },
+                },
+                { $sort: { createdAt: -1 } },
+                { $limit: 1 },
+                {
+                  $project: {
+                    _id: {
+                      $cond: {
+                        if: {
+                          $eq: ["$status", EnumConstant.RESUME_STUDY],
+                        },
+                        then: EnumConstant.ACTIVE,
+                        else: "$status",
+                      },
+                    },
+                    createdAt: 1,
+                  },
+                },
+              ],
+              as: "request_timelines",
+            },
+          },
+          {
+            $unwind: { path: "$request_timelines" },
+          },
+          {
+            $lookup: {
+              from: "student_occupations",
+              let: { studentId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$students", "$$studentId"],
+                    },
+                  },
+                },
+                { $sort: { createdAt: -1 } },
+                { $limit: 1 },
+              ],
+              as: "student_occupations",
+            },
+          },
+          {
+            $unwind: {
+              path: "$student_occupations",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $match: {
+              ...matchStudentOccupations,
+            }
+          },
+          {
+            $project: {
+              first_name: 1,
+              last_name: 1,
+              profile_image: 1,
+              gender: 1,
+              date_of_birth: 1,
+              type_poverty_status: 1,
+              phone_number: 1,
+              handicap: 1,
+              courses: {
+                course_start: 1,
+                course_end: 1,
+                apply_majors:1
+              },
+              schools: 1,
+              address: 1,
+              guarantor: 1,
+              student_occupations: 1,
+            },
+          },
+          {
+            $facet: {
+              result: [
+                { $skip: skip },
+                ...(limit > 0 ? [{ $limit: limit }] : []),
+              ],
+              totalCount: [
+                {
+                  $count: "count",
+                },
+              ],
+            },
+          },
+        ])
+        .allowDiskUse(true);
+
+    let [getData, count] = await controllers.student.facetData(data, [
+      {
+        path: "schools",
+        select: "name name_en profile_image",
+        model: "schools",
+      },
+      {
+        path: "courses.apply_majors.sectors",
+        select: "name name_en",
+        model: "sectors",
+      },
+      { path: "address.villages", select: "name" },
+      { path: "address.communes", select: "name" },
+      { path: "address.districts", select: "name" },
+      { path: "address.city_provinces", select: "name" },
+      {
+        path: "student_occupations.company_profile.address.villages",
+        select: "name name_en",
+        model: "villages",
+      },
+      {
+        path: "student_occupations.company_profile.address.communes",
+        select: "name name_en",
+        model: "communes",
+      },
+      {
+        path: "student_occupations.company_profile.address.districts",
+        select: "name name_en",
+        model: "districts",
+      },
+      {
+        path: "student_occupations.company_profile.address.city_provinces",
+        select: "name name_en",
+        model: "city_provinces",
+      },
+    ]);
+    let json = CommonUtil.JSONParse(getData);
+    json.map((item: any) => {
+      let data = item;
+      let address = "";
+      if (item.address) {
+        if (item.address.city_provinces) {
+          address = item.address.city_provinces.name;
+        }
+        if (item.address.districts) {
+          address += ", " + item.address.districts.name;
+        }
+        if (item.address.communes) {
+          address += ", " + item.address.communes.name;
+        }
+        if (item.address.villages) {
+          address += ", " + item.address.villages.name;
+        }
+        if (item.address.detail) {
+          address += ", " + item.address.detail;
+        }
+        data.address.name = address;
+      }
+      let companyAddr = "";
+      if (item?.student_occupations?.company_profile?.address) {
+        if (
+            item?.student_occupations?.company_profile?.address?.city_provinces
+        ) {
+          companyAddr =
+              item.student_occupations?.company_profile?.address?.city_provinces
+                  ?.name;
+        }
+        if (item?.student_occupations?.company_profile?.address?.districts) {
+          companyAddr +=
+              ", " +
+              item?.student_occupations?.company_profile?.address?.districts
+                  ?.name;
+        }
+        if (item?.student_occupations?.company_profile?.address?.communes) {
+          companyAddr +=
+              ", " +
+              item?.student_occupations?.company_profile?.address?.communes?.name;
+        }
+        if (item?.student_occupations?.company_profile?.address?.villages) {
+          companyAddr +=
+              ", " +
+              item?.student_occupations?.company_profile?.address?.villages?.name;
+        }
+        if (item?.student_occupations?.company_profile?.address?.detail) {
+          companyAddr +=
+              ", " + item?.student_occupations?.company_profile?.address?.detail;
+        }
+        data.student_occupations.company_profile.address.name = companyAddr;
+      }
+    });
+    return [json, count];
+  }
+  async studentStatusByCityBySchoolBySectorByMajor(req: any) {
+    let { schools } = req.query;
+    let querySchool: any = {
+      status: EnumConstant.ACTIVE,
+      type_projects: EnumConstant.TypeProject.scholarship,
+    };
+    if (schools) {
+      querySchool._id = new ObjectId(schools);
+    }
+    if (req.body._user.schools) {
+      querySchool._id = new ObjectId(req.body._user.schools);
+    }
+    let [startDate, endDate] = CommonUtil.parseStartDateEndDate(
+      req.query.start_date,
+      req.query.end_date
+    );
+    let data = await models.school
+      .aggregate([
+        {
+          $match: querySchool,
+        },
+        {
+          $lookup: {
+            from: "skills",
+            let: { schoolId: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  status: EnumConstant.ACTIVE,
+                },
+              },
+              {
+                $lookup: {
+                  from: "courses",
+                  let: { id: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $and: [
+                            { $eq: ["$apply_majors", "$$id"] },
+                            { $eq: ["$schools", "$$schoolId"] },
+                          ],
+                        },
+                        // status: { $ne: EnumConstant.DELETE },
+                      },
+                    },
+                    {
+                      $lookup: {
+                        from: "students",
+                        let: { id: "$_id" },
+                        pipeline: [
+                          {
+                            $match: {
+                              $expr: { $eq: ["$courses", "$$id"] },
+                            },
+                          },
+                          {
+                            $lookup: {
+                              from: "request_timelines",
+                              let: { id: "$_id" },
+                              pipeline: [
+                                {
+                                  $match: {
+                                    $expr: { $eq: ["$students", "$$id"] },
+                                    $or: [
+                                      {
+                                        status: {
+                                          $in: [
+                                            EnumConstant.REQUESTING,
+                                            EnumConstant.ACTIVE,
+                                          ],
+                                        },
+                                        timeline_type:
+                                          EnumConstant.TimelineType.SCHOLARSHIP,
+                                        resubmit: { $ne: EnumConstant.ACTIVE },
+                                      },
+                                      {
+                                        status: EnumConstant.ACTIVE,
+                                        timeline_type:
+                                          EnumConstant.TimelineType
+                                            .APPROVALINFO,
+                                      },
+                                      {
+                                        status: EnumConstant.ACTIVE,
+                                        timeline_type:
+                                          EnumConstant.TimelineType.IDPOOR,
+                                      },
+                                      {
+                                        status: EnumConstant.REQUESTING,
+                                        timeline_type:
+                                          EnumConstant.TimelineType.IDPOOR,
+                                        resubmit: { $ne: EnumConstant.ACTIVE },
+                                      },
+                                    ],
+                                    createdAt: {
+                                      $gte: startDate,
+                                      $lte: endDate,
+                                    },
+                                  },
+                                },
+                                {
+                                  $group: {
+                                    _id: {
+                                      status: "$status",
+                                      timeline_type: "$timeline_type",
+                                    },
+                                  },
+                                },
+                              ],
+                              as: "request_timelines",
+                            },
+                          },
+                          { $unwind: { path: "$request_timelines" } },
+                        ],
+                        as: "students",
+                      },
+                    },
+                    { $unwind: { path: "$students" } },
+                  ],
+                  as: "courses",
+                },
+              },
+              {
+                $unwind: { path: "$courses", preserveNullAndEmptyArrays: true },
+              },
+              {
+                $group: {
+                  _id: "$_id",
+                  name: { $first: "$name" },
+                  name_en: { $first: "$name_en" },
+                  sectors: { $first: "$sectors" },
+                  code: { $first: "$code" },
+                  apply_student: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.SCHOLARSHIP,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.REQUESTING,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  apply_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.SCHOLARSHIP,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.REQUESTING,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.gender",
+                                EnumConstant.Gender.FEMALE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  scholarship_approved_student: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.SCHOLARSHIP,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  scholarship_approved_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.SCHOLARSHIP,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.gender",
+                                EnumConstant.Gender.FEMALE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  idpoor_request_student: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.IDPOOR,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.REQUESTING,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  idpoor_request_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.IDPOOR,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.REQUESTING,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.gender",
+                                EnumConstant.Gender.FEMALE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  idpoor_approved_student: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.IDPOOR,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  idpoor_approved_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.IDPOOR,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.gender",
+                                EnumConstant.Gender.FEMALE,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.status",
+                                EnumConstant.ACTIVE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  info_approved_student: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $eq: [
+                            "$courses.students.request_timelines._id.timeline_type",
+                            EnumConstant.TimelineType.APPROVALINFO,
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  info_approved_female: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            {
+                              $eq: [
+                                "$courses.students.request_timelines._id.timeline_type",
+                                EnumConstant.TimelineType.APPROVALINFO,
+                              ],
+                            },
+                            {
+                              $eq: [
+                                "$courses.students.gender",
+                                EnumConstant.Gender.FEMALE,
+                              ],
+                            },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+              {
+                $addFields: {
+                  apply_female: {
+                    $cond: [
+                      { $ifNull: ["$apply_female", false] },
+                      "$apply_female",
+                      0,
+                    ],
+                  },
+                  apply_student: {
+                    $cond: [
+                      { $ifNull: ["$apply_student", false] },
+                      "$apply_student",
+                      0,
+                    ],
+                  },
+                  idpoor_approved_female: {
+                    $cond: [
+                      { $ifNull: ["$idpoor_approved_female", false] },
+                      "$idpoor_approved_female",
+                      0,
+                    ],
+                  },
+                  idpoor_approved_student: {
+                    $cond: [
+                      { $ifNull: ["$idpoor_approved_student", false] },
+                      "$idpoor_approved_student",
+                      0,
+                    ],
+                  },
+                  idpoor_request_student: {
+                    $cond: [
+                      { $ifNull: ["$idpoor_request_student", false] },
+                      "$idpoor_request_student",
+                      0,
+                    ],
+                  },
+                  idpoor_request_female: {
+                    $cond: [
+                      { $ifNull: ["$idpoor_request_female", false] },
+                      "$idpoor_request_female",
+                      0,
+                    ],
+                  },
+                  info_approved_female: {
+                    $cond: [
+                      { $ifNull: ["$info_approved_female", false] },
+                      "$info_approved_female",
+                      0,
+                    ],
+                  },
+                  info_approved_student: {
+                    $cond: [
+                      { $ifNull: ["$info_approved_student", false] },
+                      "$info_approved_student",
+                      0,
+                    ],
+                  },
+                  scholarship_approved_female: {
+                    $cond: [
+                      { $ifNull: ["$scholarship_approved_female", false] },
+                      "$scholarship_approved_female",
+                      0,
+                    ],
+                  },
+                  scholarship_approved_student: {
+                    $cond: [
+                      { $ifNull: ["$scholarship_approved_student", false] },
+                      "$scholarship_approved_student",
+                      0,
+                    ],
+                  },
+                },
+              },
+              { $sort: { code: 1 } },
+              {
+                $group: {
+                  _id: "$sectors",
+                  apply_majors: { $push: "$$ROOT" },
+                  apply_student: { $sum: "$apply_student" },
+                  apply_female: { $sum: "$apply_female" },
+                  scholarship_approved_student: {
+                    $sum: "$scholarship_approved_student",
+                  },
+                  scholarship_approved_female: {
+                    $sum: "$scholarship_approved_female",
+                  },
+                  idpoor_approved_student: { $sum: "$idpoor_approved_student" },
+                  idpoor_approved_female: { $sum: "$idpoor_approved_female" },
+                  info_approved_student: { $sum: "$info_approved_student" },
+                  info_approved_female: { $sum: "$info_approved_female" },
+                  idpoor_request_student: { $sum: "$idpoor_request_student" },
+                  idpoor_request_female: { $sum: "$idpoor_request_female" },
+                },
+              },
+              {
+                $lookup: {
+                  from: "sectors",
+                  let: { id: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$_id", "$$id"] },
+                      },
+                    },
+                  ],
+                  as: "sectors",
+                },
+              },
+              {
+                $unwind: { path: "$sectors", preserveNullAndEmptyArrays: true },
+              },
+              {
+                $addFields: {
+                  name: "$sectors.name",
+                  name_en: "$sectors.name_en",
+                  code: "$sectors.code",
+                },
+              },
+              {
+                $project: {
+                  sectors: 0,
+                },
+              },
+            ],
+            as: "sectors",
+          },
+        },
+        {
+          $unwind: { path: "$sectors" },
+        },
+        { $sort: { "sectors.code": 1 } },
+        {
+          $group: {
+            _id: "$_id",
+            address: { $first: "$address" },
+            name: { $first: "$name" },
+            name_en: { $first: "$name_en" },
+            profile_image: { $first: "$profile_image" },
+            id_code: { $first: "$id_code" },
+            code_en: { $first: "$code_en" },
+            sectors: { $push: "$sectors" },
+            apply_student: { $sum: "$sectors.apply_student" },
+            apply_female: { $sum: "$sectors.apply_female" },
+            scholarship_approved_student: {
+              $sum: "$sectors.scholarship_approved_student",
+            },
+            scholarship_approved_female: {
+              $sum: "$sectors.scholarship_approved_female",
+            },
+            idpoor_approved_student: {
+              $sum: "$sectors.idpoor_approved_student",
+            },
+            idpoor_approved_female: { $sum: "$sectors.idpoor_approved_female" },
+            info_approved_student: { $sum: "$sectors.info_approved_student" },
+            info_approved_female: { $sum: "$sectors.info_approved_female" },
+            idpoor_request_student: { $sum: "$sectors.idpoor_request_student" },
+            idpoor_request_female: { $sum: "$sectors.idpoor_request_female" },
+          },
+        },
+        {
+          $sort: {
+            id_code: 1,
+          },
+        },
+        {
+          $group: {
+            _id: "$address.city_provinces",
+            schools: { $push: "$$ROOT" },
+            apply_student: { $sum: "$apply_student" },
+            apply_female: { $sum: "$apply_female" },
+            scholarship_approved_student: {
+              $sum: "$scholarship_approved_student",
+            },
+            scholarship_approved_female: {
+              $sum: "$scholarship_approved_female",
+            },
+            idpoor_approved_student: { $sum: "$idpoor_approved_student" },
+            idpoor_approved_female: { $sum: "$idpoor_approved_female" },
+            info_approved_student: { $sum: "$info_approved_student" },
+            info_approved_female: { $sum: "$info_approved_female" },
+            idpoor_request_student: { $sum: "$idpoor_request_student" },
+            idpoor_request_female: { $sum: "$idpoor_request_female" },
+          },
+        },
+        {
+          $lookup: {
+            from: "city_provinces",
+            let: { id: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$_id", "$$id"] },
+                },
+              },
+            ],
+            as: "city_provinces",
+          },
+        },
+        {
+          $unwind: {
+            path: "$city_provinces",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $sort: {
+            "city_provinces.order": 1,
+          },
+        },
+        {
+          $addFields: {
+            name: "$city_provinces.name",
+            name_en: "$city_provinces.name_en",
+          },
+        },
+        {
+          $project: {
+            city_provinces: 0,
+            "schools.address": 0,
+          },
+        },
+      ])
+      .allowDiskUse(true);
+    let jsonData = CommonUtil.JSONParse(data);
+    let headerColumns: any[] = [];
+    headerColumns.push({ _id: 1, name: "ចំនួនស្នើសុំចុះឈ្មោះចូលរៀន" });
+    headerColumns.push({ _id: 2, name: "អនុម័តដោយគ្រឹះស្ថាន" });
+    headerColumns.push({ _id: 3, name: "សំណើទៅមូលនិធិជាតិជំនួយសង្គម" });
+    headerColumns.push({ _id: 4, name: "អនុម័តដោយមូលនិធិជាតិជំនួយសង្គម" });
+    let keyToRemove = [
+      "scholarship_approved_student",
+      "scholarship_approved_female",
+      "apply_student",
+      "apply_female",
+      "idpoor_approved_student",
+      "idpoor_approved_female",
+      "info_approved_student",
+      "info_approved_female",
+    ];
+    for (var i = 0; i < jsonData.length; i++) {
+      for (var school = 0; school < jsonData[i].schools.length; school++) {
+        let sch = jsonData[i].schools[school];
+        for (var sector = 0; sector < sch.sectors.length; sector++) {
+          let sec = sch.sectors[sector];
+          for (var major = 0; major < sec.apply_majors.length; major++) {
+            let studentData: any[] = [];
+            let maj = sec.apply_majors[major];
+            studentData.push({
+              _id: 1,
+              total_student: maj.apply_student,
+              total_female: maj.apply_female,
+            });
+            studentData.push({
+              _id: 2,
+              total_student: maj.scholarship_approved_student,
+              total_female: maj.scholarship_approved_female,
+            });
+            studentData.push({
+              _id: 3,
+              total_student: maj.idpoor_request_student,
+              total_female: maj.idpoor_request_female,
+            });
+            studentData.push({
+              _id: 4,
+              total_student: maj.idpoor_approved_student,
+              total_female: maj.idpoor_approved_female,
+            });
+            jsonData[i].schools[school].sectors[sector].apply_majors[
+              major
+            ].student_data = studentData;
+            jsonData[i].schools[school].sectors[sector].apply_majors[major] =
+              CommonUtil.removeKeys(
+                jsonData[i].schools[school].sectors[sector].apply_majors[major],
+                keyToRemove
+              );
+          }
+          let studentData: any[] = [];
+          studentData.push({
+            _id: 1,
+            total_student: sec.apply_student,
+            total_female: sec.apply_female,
+          });
+          studentData.push({
+            _id: 2,
+            total_student: sec.scholarship_approved_student,
+            total_female: sec.scholarship_approved_female,
+          });
+          studentData.push({
+            _id: 3,
+            total_student: sec.idpoor_request_student,
+            total_female: sec.idpoor_request_female,
+          });
+          studentData.push({
+            _id: 4,
+            total_student: sec.idpoor_approved_student,
+            total_female: sec.idpoor_approved_female,
+          });
+          jsonData[i].schools[school].sectors[sector].student_data =
+            studentData;
+          jsonData[i].schools[school].sectors[sector] = CommonUtil.removeKeys(
+            jsonData[i].schools[school].sectors[sector],
+            keyToRemove
+          );
+        }
+        let studentData: any[] = [];
+        studentData.push({
+          _id: 1,
+          total_student: sch.apply_student,
+          total_female: sch.apply_female,
+        });
+        studentData.push({
+          _id: 2,
+          total_student: sch.scholarship_approved_student,
+          total_female: sch.scholarship_approved_female,
+        });
+        studentData.push({
+          _id: 3,
+          total_student: sch.idpoor_request_student,
+          total_female: sch.idpoor_request_female,
+        });
+        studentData.push({
+          _id: 4,
+          total_student: sch.idpoor_approved_student,
+          total_female: sch.idpoor_approved_female,
+        });
+        jsonData[i].schools[school].student_data = studentData;
+        jsonData[i].schools[school] = CommonUtil.removeKeys(
+          jsonData[i].schools[school],
+          keyToRemove
+        );
+      }
+      let studentData: any[] = [];
+      let city = jsonData[i];
+      studentData.push({
+        _id: 1,
+        total_student: city.apply_student,
+        total_female: city.apply_female,
+      });
+      studentData.push({
+        _id: 2,
+        total_student: city.scholarship_approved_student,
+        total_female: city.scholarship_approved_female,
+      });
+      studentData.push({
+        _id: 3,
+        total_student: city.idpoor_request_student,
+        total_female: city.idpoor_request_female,
+      });
+      studentData.push({
+        _id: 4,
+        total_student: city.idpoor_approved_student,
+        total_female: city.idpoor_approved_female,
+      });
+      jsonData[i].student_data = studentData;
+      jsonData[i] = CommonUtil.removeKeys(jsonData[i], keyToRemove);
+    }
+    return {
+      start_date: startDate,
+      start_end: endDate,
+      header_columns: headerColumns,
+      report_data: jsonData,
+      total_data: this.totalValue(headerColumns, jsonData),
+    };
   }
 }

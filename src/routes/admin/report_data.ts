@@ -29,7 +29,8 @@ export default [
       ],
     },
     async (req) => {
-      return controllers.reportData.approvedList(req);
+      let data: any = await controllers.reportData.filterDataApprovedList(req);
+      return controllers.reportData.approvedList({ ...req, ...data });
     }
   ),
 
@@ -197,22 +198,21 @@ export default [
       let data: any = await controllers.reportData.filterData(req);
       data.poor_id_status = [
         {
-          _id:1,
-          name: "អនុម័ត (ម.ជ.ជ)"
+          _id: 1,
+          name: "អនុម័ត (ម.ជ.ជ)",
         },
         {
-          _id:3,
-          name: "ស្នើ​​​សុំ​ (ម.ជ.ជ)"
+          _id: 3,
+          name: "ស្នើ​​​សុំ​ (ម.ជ.ជ)",
         },
         {
-          _id:-3,
-          name: "បដិសេធ​ (ម.ជ.ជ)"
+          _id: -3,
+          name: "បដិសេធ​ (ម.ជ.ជ)",
         },
         {
-          _id:10,
-          name: "អនុម័ត​ (គ្រឹះស្ថាន)"
-        }
-       
+          _id: 10,
+          name: "អនុម័ត​ (គ្រឹះស្ថាន)",
+        },
       ];
       data.type_poverty_status = [
         {
@@ -310,6 +310,43 @@ export default [
     },
     async (req) => {
       return controllers.reportData.internshipStudentReport(req);
+    }
+  ),
+  createGetRoute(
+    "/admin/report_data/student_poor_id_by_city_province",
+    {
+      authorized_permissions: [pAdmin.report.studentList],
+      validators: [
+        validate_request("end_date", { exist: true }, CheckType.query),
+        // validate_request("city_provinces", { exist: true }, CheckType.query),
+      ],
+    },
+    async (req) => {
+      return controllers.reportData.studentPoorIdByCityProvince(req);
+    }
+  ),
+  createGetRoute(
+    "/admin/report_data/student_occupation",
+    {
+      authorized_permissions: [pAdmin.report.studentList],
+      validators: [
+        validate_request("end_date", { exist: true }, CheckType.query),
+      ],
+    },
+    async (req) => {
+      return controllers.reportData.occupationStudentReport(req);
+    }
+  ),
+  createGetRoute(
+    "/admin/report_data/student_status_by_city_school_sector_major",
+    {
+      authorized_permissions: [pAdmin.report.adminDataApprovedCount],
+      validators: [
+        validate_request("end_date", { exist: true }, CheckType.query)
+      ]
+    },
+    async (req) => {
+      return controllers.reportData.studentStatusByCityBySchoolBySectorByMajor(req);
     }
   ),
 ];
