@@ -15132,12 +15132,11 @@ export default class SubjectController {
     let json = CommonUtil.JSONParse(getData);
     return [json, count];
   }
+  
   async studentPoorIdByCityProvince(req: any) {
     let { schools, city_provinces, scholarship_status } = req.query;
 
-    let matchStudent: any = {
-      status: EnumConstant.ACTIVE,
-    };
+    let matchStudent: any = {};
 
     if (req.body._user.schools) {
       schools = req.body._user.schools;
@@ -15173,7 +15172,6 @@ export default class SubjectController {
                   $expr: {
                     $eq: ["$schools", "$$schoolId"],
                   },
-                  poor_id: { $exists: true },
                   ...matchStudent,
                 },
               },
@@ -15201,33 +15199,19 @@ export default class SubjectController {
               {
                 $lookup: {
                   from: "request_timelines",
-                  let: { studentId: "$_id" },
+                  let: { id: "$_id" },
                   pipeline: [
                     {
                       $match: {
-                        $expr: {
-                          $eq: ["$students", "$$studentId"],
-                        },
+                        $expr: { $eq: ["$students", "$$id"] },
+                        status: EnumConstant.REQUESTING,
                         timeline_type: EnumConstant.TimelineType.SCHOLARSHIP,
                         createdAt: { $lte: endDate },
-                        // ...query
+                        resubmit: { $ne: EnumConstant.ACTIVE },
                       },
                     },
-                    { $sort: { createdAt: -1 } },
-                    { $limit: 1 },
                     {
-                      $project: {
-                        _id: {
-                          $cond: {
-                            if: {
-                              $eq: ["$status", EnumConstant.RESUME_STUDY],
-                            },
-                            then: EnumConstant.ACTIVE,
-                            else: "$status",
-                          },
-                        },
-                        createdAt: 1,
-                      },
+                      $limit: 1,
                     },
                   ],
                   as: "request_timelines",
@@ -15318,12 +15302,19 @@ export default class SubjectController {
                   },
                   city_name: { $first: "$city_provinces.name" },
                   district_name: { $first: "$districts.name" },
-                  total_apply: { $sum: 1 },
+                  total_apply: {
+                    $sum: {
+                      $cond: [{ $ifNull: ["$poor_id", false] }, 1, 0],
+                    },
+                  },
                   total_apply_female: {
                     $sum: {
                       $cond: [
                         {
-                          $eq: ["$gender", EnumConstant.Gender.FEMALE],
+                          $and: [
+                            { $ifNull: ["$poor_id", false] },
+                            { $eq: ["$gender", EnumConstant.Gender.FEMALE] },
+                          ],
                         },
                         1,
                         0,
@@ -15447,7 +15438,6 @@ export default class SubjectController {
       total_data: this.totalValue(headerColumns, jsonData),
     };
   }
-
 
   async occupationStudentReport(req: any) {
     let { schools, student_occupations } = req.query;

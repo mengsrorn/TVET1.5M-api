@@ -32,6 +32,7 @@ export interface IStudents {
     status: number;
     id_card_number: string;
     create_by: IStaffs["_id"];
+    updated_by: IStaffs["_id"];
     type_leavel_scholarships: IType_leave_scholarships["_id"]
     type_poverty_status: IType_poverty_status["_id"]
     type_projects: IType_projects["_id"]
@@ -78,6 +79,7 @@ const schema = new Schema({
     poor_id: String,
     poor_member_uuid: String,
     create_by: { type: Schema.Types.ObjectId, ref: "staffs" },
+    updated_by: { type: Schema.Types.ObjectId, ref: "staffs" },
     poor_file_datas: { type: Schema.Types.ObjectId, ref: "file_datas" },
     attachment_files: [{ type: Schema.Types.ObjectId, ref: "file_datas" }],
     courses: { type: Schema.Types.ObjectId, ref: "courses" },

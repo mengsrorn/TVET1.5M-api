@@ -86,6 +86,7 @@ export default class Controller extends AbstractController<IStudents> {
         studentData.scholarship_status = EnumConstant.REQUESTING;
         if (req.body._user) {
             studentData.create_by = req.body._user._id;
+            studentData.updated_by = req.body._user._id;
         }
         if (req.body.files.poor_file_datas) {
             let promise = await controllers.fileData.uploadFile({
@@ -245,7 +246,7 @@ export default class Controller extends AbstractController<IStudents> {
 
     async update(req: any) {
       
-        let { first_name, last_name, date_of_birth, gender, id_card_number, poor_id } = req.body
+        let { first_name, last_name, date_of_birth, gender, id_card_number, poor_id, _user } = req.body
         let _id = req.params._id;
         let [getStudent, getExistName] = await Promise.all([
             controllers.student.getOne({
@@ -328,6 +329,7 @@ export default class Controller extends AbstractController<IStudents> {
         let objs = new this.model(req.body);
         let student = CommonUtil.removeKeys(objs, ["_id", "schools", "courses", "apply_majors", "status", "profile_image", "attachment_files"]);
         student.attachment_files = getStudent.attachment_files;
+        student.updated_by = _user._id;
         if (String(req.body.remove_profile_image) == "true") {
             student.profile_image = ""
             // controllers.fileData.deleteFileFromGrid(getStudent.profile_image) //Can't delete: certificate need profile, 
