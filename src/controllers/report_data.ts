@@ -9613,20 +9613,11 @@ export default class SubjectController {
   }
 
   async getWeeklyReport(req: any) {
-    let {
-      apply_majors,
-      shifts,
-      schools,
-      poor_status,
-      type_poverty_status,
-      page,
-      limit,
-    } = req.query;
+    let { apply_majors, schools, page, limit } = req.query;
     let endDate = new Date(req.query.end_date);
 
     let query: any = {
       status: { $ne: EnumConstant.DELETE },
-      createdAt: { $lte: endDate },
     };
     if (apply_majors) {
       query._id = new ObjectId(apply_majors);
@@ -9639,19 +9630,8 @@ export default class SubjectController {
     }
     let queryTimelineType = EnumConstant.TimelineType.SCHOLARSHIP;
     let matchPoor: any = {};
-    if (poor_status) {
-      matchPoor.poor_status = Number(poor_status);
-      // queryTimelineType = EnumConstant.TimelineType.IDPOOR
-    }
-    if (type_poverty_status) {
-      if (type_poverty_status == EnumConstant.TypePovertyStatus.NOT_POOR) {
-        matchPoor.type_poverty_status = { $in: [type_poverty_status, null] };
-      } else {
-        matchPoor.type_poverty_status = type_poverty_status;
-      }
-    }
     let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
-    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
+    let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));    
 
     let currentDate = new Date(Date.now());
 
@@ -9662,4908 +9642,5684 @@ export default class SubjectController {
 
     let totalCount = await models.course.countDocuments(query);
     let data = await models.course
-      .aggregate([
-        {
-          $match: query,
+    .aggregate([
+      {
+        $match: query,
+      },
+      {
+        $skip: skipCount,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $lookup: {
+          from: "skills",
+          let: { majorId: "$apply_majors" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$_id", "$$majorId"],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                name_en: 1,
+                code: 1,
+              },
+            },
+          ],
+          as: "apply_majors",
         },
-        {
-          $skip: skipCount,
+      },
+      {
+        $unwind: {
+          path: "$apply_majors",
+          preserveNullAndEmptyArrays: true,
         },
-        {
-          $limit: limit,
-        },
-        {
-          $lookup: {
-            from: "skills",
-            let: { majorId: "$apply_majors" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $eq: ["$_id", "$$majorId"],
+      },
+      {
+        $lookup: {
+          from: "schools",
+          let: { schoolId: "$schools" },
+          pipeline: [
+            {
+              $match: { $expr: { $eq: ["$_id", "$$schoolId"] } },
+            },
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                name_en: 1,
+                code: 1,
+              },
+            },
+            {
+              $lookup: {
+                from: "score_pass_fails",
+                let: { schoolId: "$_id" },
+                pipeline: [
+                  {
+                    $match: { $expr: { $eq: ["$schools", "$$schoolId"] } },
                   },
-                },
+                ],
+                as: "score_pass_fails",
               },
-              {
-                $project: {
-                  _id: 1,
-                  name: 1,
-                  name_en: 1,
-                  code: 1,
-                },
-              },
-            ],
-            as: "apply_majors",
+            },
+          ],
+          as: "schools",
+        },
+      },
+      {
+        $unwind: { path: "$schools" },
+      },
+      {
+        $set: {
+          school_score: {
+            $arrayElemAt: ["$schools.score_pass_fails.pass_score", 0],
           },
         },
-        {
-          $unwind: {
-            path: "$apply_majors",
-          },
+      },
+{
+        $lookup: {
+          from: "students",
+          let: { id: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$courses", "$$id"] },
+              },
+            },
+            {
+              $lookup: {
+                from: "request_timelines",
+                let: {
+                  id: "$_id",
+                },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ["$students", "$$id"],
+                      },
+                      timeline_type: queryTimelineType,
+                      createdAt: { $lte: endDate },
+                    },
+                  },
+                  { $sort: { createdAt: -1 } },
+                  { $limit: 1 },
+                  {
+                    $project: {
+                      _id: {
+                        $cond: {
+                          if: {
+                            $eq: ["$status", EnumConstant.RESUME_STUDY],
+                          },
+                          then: EnumConstant.ACTIVE,
+                          else: "$status",
+                        },
+                      },
+                      createdAt: 1,
+                    },
+                  },
+                ],
+                as: "request_timelines",
+              },
+            },
+            {
+              $unwind: {
+                path: "$request_timelines",
+              },
+            },
+            {
+              $lookup: {
+                from: "scores",
+                let: { id: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ["$students", "$$id"],
+                      },
+                      is_final_score: true,
+                    },
+                  },
+                ],
+                as: "scores",
+              },
+            },
+            {
+              $set: {
+                student_total_score: {
+                  $arrayElemAt: ["$scores.total_score", 0],
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "student_internships",
+                let: { id: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ["$students", "$$id"],
+                      },
+                      // status: 1,
+                      start_date: { $lte: endDate },
+                    },
+                  },
+                  { $limit: 1 },
+                ],
+                as: "student_internships",
+              },
+            },
+            {
+              $unwind: {
+                path: "$student_internships",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: "student_occupations",
+                let: { id: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ["$students", "$$id"],
+                      },
+                      status: EnumConstant.ACTIVE,
+                      has_job: EnumConstant.ACTIVE,
+                    },
+                  },
+                  { $sort: { createdAt: -1 } },
+                  { $limit: 1 },
+                ],
+                as: "student_occupations",
+              },
+            },
+            {
+              $unwind: {
+                path: "$student_occupations",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: "attendance_students",
+                let: { studentId: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ["$students", "$$studentId"],
+                      },
+                    },
+                  },
+                ],
+                as: "average_attendance",
+              },
+            },
+            {
+              $addFields: {
+                average_attendance: {
+                  $avg: "$average_attendance.attendance_score",
+                },
+              },
+            },
+            {
+              $project: {
+                first_name: 1,
+                last_name: 1,
+                courses: 1,
+                createdAt: 1,
+                gender: 1,
+                poor_id: 1,
+                poor_member_uuid: 1,
+                poor_status: 1,
+                request_timelines: 1,
+                scholarship_status: 1,
+                schools: 1,
+                status: 1,
+                type_poverty_status: 1,
+                type_projects: 1,
+                scores: 1,
+                student_total_score: 1,
+                type_leavel_scholarships: 1,
+                average_attendance: 1,
+                student_internships: 1,
+                student_occupations: 1,
+              },
+            },
+         
+          ],
+          as: "students",
         },
-        {
-          $lookup: {
-            from: "schools",
-            let: { schoolId: "$schools" },
-            pipeline: [
-              {
-                $match: { $expr: { $eq: ["$_id", "$$schoolId"] } },
-              },
-              {
-                $project: {
-                  _id: 1,
-                  name: 1,
-                  name_en: 1,
-                  code: 1,
-                },
-              },
-              {
-                $lookup: {
-                  from: "score_pass_fails",
-                  let: { schoolId: "$_id" },
-                  pipeline: [
+      },
+      { $unwind: { path: "$students" } },
+      {
+        $group: {
+          _id: "$_id",
+          name: { $first: "$apply_majors.name" },
+          name_en: { $first: "$apply_majors.name_en" },
+          code: { $first: "$apply_majors.code" },
+          schoolId: { $first: "$schools._id" },
+          school: { $first: "$schools.name" },
+          course_start: { $first: "$course_start" },
+          course_end: { $first: "$course_end" },
+          // Register Student
+          total_student_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
                     {
-                      $match: { $expr: { $eq: ["$schools", "$$schoolId"] } },
+                      $lte: ["$students.createdAt", endDate],
                     },
                   ],
-                  as: "score_pass_fails",
                 },
-              },
-            ],
-            as: "schools",
-          },
-        },
-        {
-          $unwind: { path: "$schools" },
-        },
-        {
-          $set: {
-            school_score: {
-              $arrayElemAt: ["$schools.score_pass_fails.pass_score", 0],
-            },
-          },
-        },
-        {
-          $lookup: {
-            from: "students",
-            let: { id: "$_id" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: ["$courses", "$$id"] },
-                },
-              },
-              {
-                $lookup: {
-                  from: "request_timelines",
-                  let: {
-                    id: "$_id",
-                  },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$students", "$$id"],
-                        },
-                        timeline_type: queryTimelineType,
-                        createdAt: { $lte: endDate },
-                      },
-                    },
-                    { $sort: { createdAt: -1 } },
-                    { $limit: 1 },
-                    {
-                      $project: {
-                        _id: {
-                          $cond: {
-                            if: {
-                              $eq: ["$status", EnumConstant.RESUME_STUDY],
-                            },
-                            then: EnumConstant.ACTIVE,
-                            else: "$status",
-                          },
-                        },
-                        createdAt: 1,
-                      },
-                    },
-                  ],
-                  as: "request_timelines",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$request_timelines",
-                },
-              },
-              {
-                $lookup: {
-                  from: "scores",
-                  let: { id: "$_id" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$students", "$$id"],
-                        },
-                        is_final_score: true,
-                      },
-                    },
-                  ],
-                  as: "scores",
-                },
-              },
-              {
-                $set: {
-                  student_total_score: {
-                    $arrayElemAt: ["$scores.total_score", 0],
-                  },
-                },
-              },
-              {
-                $lookup: {
-                  from: "student_internships",
-                  let: { id: "$_id" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$students", "$$id"],
-                        },
-                        status: EnumConstant.ACTIVE,
-                        start_date: { $lte: endDate },
-                      },
-                    },
-                    { $limit: 1 },
-                  ],
-                  as: "student_internships",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$student_internships",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "student_occupations",
-                  let: { id: "$_id" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$students", "$$id"],
-                        },
-                        status: EnumConstant.ACTIVE,
-                        has_job: EnumConstant.ACTIVE,
-                      },
-                    },
-                    { $sort: { createdAt: -1 } },
-                    { $limit: 1 },
-                  ],
-                  as: "student_occupations",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$student_occupations",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "attendance_students",
-                  let: { studentId: "$_id" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$students", "$$studentId"],
-                        },
-                      },
-                    },
-                  ],
-                  as: "average_attendance",
-                },
-              },
-              {
-                $addFields: {
-                  average_attendance: {
-                    $avg: "$average_attendance.attendance_score",
-                  },
-                },
-              },
-              {
-                $project: {
-                  first_name: 1,
-                  last_name: 1,
-                  courses: 1,
-                  createdAt: 1,
-                  gender: 1,
-                  poor_id: 1,
-                  poor_member_uuid: 1,
-                  poor_status: 1,
-                  request_timelines: 1,
-                  scholarship_status: 1,
-                  schools: 1,
-                  status: 1,
-                  type_poverty_status: 1,
-                  type_projects: 1,
-                  scores: 1,
-                  student_total_score: 1,
-                  type_leavel_scholarships: 1,
-                  average_attendance: 1,
-                  student_internships: 1,
-                  student_occupations: 1,
-                },
-              },
-            ],
-            as: "students",
-          },
-        },
-        { $unwind: { path: "$students", preserveNullAndEmptyArrays: true } },
-        {
-          $group: {
-            _id: "$_id",
-            name: { $first: "$apply_majors.name" },
-            name_en: { $first: "$apply_majors.name_en" },
-            code: { $first: "$apply_majors.code" },
-            schoolId: { $first: "$schools._id" },
-            school: { $first: "$schools.name" },
-            course_start: { $first: "$course_start" },
-            course_end: { $first: "$course_end" },
-            // Register Student
-            total_student_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $lte: ["$students.createdAt", endDate] },
-                      { $ifNull: ["$students", false] },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-
-            student_register_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_register_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_poor_1_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_female_poor_1_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_male_poor_1_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_poor_2_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_female_poor_2_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_male_poor_2_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_near_poor_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_female_near_poor_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_male_near_poor_register: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_not_poor_register: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                          { $ifNull: ["$students", false] },
-                          { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            student_female_not_poor_register: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                          {
-                            $eq: ["$students.gender", "female"],
-                          },
-                          { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                        ],
-                      },
-
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            student_male_not_poor_register: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: ["$students.gender", "male"],
-                          },
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                          { $eq: ["$students.status", EnumConstant.ACTIVE] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // NOT_ENOUGH_DOC Students
-            total_not_enough_doc_student: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_not_enough_doc_student_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_not_enough_doc_student_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_not_enough_doc_student_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            not_enough_doc_student_female_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            not_enough_doc_student_male_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_not_enough_doc_student_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            not_enough_doc_student_female_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            not_enough_doc_student_male_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_not_enough_doc_student_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            not_enough_doc_student_female_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            not_enough_doc_student_male_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_not_enough_doc_student_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                          {
-                            $eq: [
-                              "$students.type_leavel_scholarships",
-                              controllers.typeLeaveScholarship.status
-                                .NOT_ENOUGH_DOCUMENT,
-                            ],
-                          },
-                        ],
-                      },
-
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            not_enough_doc_student_female_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                          {
-                            $eq: [
-                              "$students.type_leavel_scholarships",
-                              controllers.typeLeaveScholarship.status
-                                .NOT_ENOUGH_DOCUMENT,
-                            ],
-                          },
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            not_enough_doc_student_male_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                          {
-                            $eq: [
-                              "$students.type_leavel_scholarships",
-                              controllers.typeLeaveScholarship.status
-                                .NOT_ENOUGH_DOCUMENT,
-                            ],
-                          },
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // Approve Students
-            total_student_approve: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                      {
-                        $ifNull: ["$students", false],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_female_approve: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_male_approve: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_approve_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_female_approve_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_male_approve_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_approve_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_female_approve_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_male_approve_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_approve_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_female_approve_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_male_approve_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REQUESTING,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.scholarship_status",
-                          EnumConstant.REJECTED,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $lte: ["$students.createdAt", endDate],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            student_approve_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $ne: [
-                              "$students.scholarship_status",
-                              EnumConstant.REQUESTING,
-                            ],
-                          },
-                          {
-                            $ne: [
-                              "$students.scholarship_status",
-                              EnumConstant.REJECTED,
-                            ],
-                          },
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                          { $ifNull: ["$students", false] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            student_female_approve_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $ne: [
-                              "$students.scholarship_status",
-                              EnumConstant.REQUESTING,
-                            ],
-                          },
-                          {
-                            $ne: [
-                              "$students.scholarship_status",
-                              EnumConstant.REJECTED,
-                            ],
-                          },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                          { $ifNull: ["$students", false] },
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            student_male_approve_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $ne: [
-                              "$students.scholarship_status",
-                              EnumConstant.REQUESTING,
-                            ],
-                          },
-                          {
-                            $ne: [
-                              "$students.scholarship_status",
-                              EnumConstant.REJECTED,
-                            ],
-                          },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                          {
-                            $lte: ["$students.createdAt", endDate],
-                          },
-                          { $ifNull: ["$students", false] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // Quit During Study
-            total_quit_during_studying: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_quit_during_studying_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_quit_during_studying_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_quit_during_studying_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            quit_during_studying_poor_1_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            quit_during_studying_poor_1_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_quit_during_studying_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            quit_during_studying_poor_2_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            quit_during_studying_poor_2_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_quit_during_studying_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            quit_during_studying_near_poor_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            quit_during_studying_near_poor_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.type_leavel_scholarships",
-                          controllers.typeLeaveScholarship.status
-                            .NOT_ENOUGH_DOCUMENT,
-                        ],
-                      },
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [
-                            EnumConstant.QUIT,
-                            controllers.typeLeaveScholarship.status
-                              .LEAVE_BEFORE_EVALUATE,
-                          ],
-                        ],
-                      },
-                      {
-                        $lte: [
-                          "$course_start",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$course_end",
-                          "$students.request_timelines.createdAt",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_quit_during_studying_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students", false] },
-                          {
-                            $ne: [
-                              "$students.type_leavel_scholarships",
-                              controllers.typeLeaveScholarship.status
-                                .NOT_ENOUGH_DOCUMENT,
-                            ],
-                          },
-                          {
-                            $in: [
-                              "$students.request_timelines._id",
-                              [
-                                EnumConstant.QUIT,
-                                controllers.typeLeaveScholarship.status
-                                  .LEAVE_BEFORE_EVALUATE,
-                              ],
-                            ],
-                          },
-                          {
-                            $lte: [
-                              "$course_start",
-                              "$students.request_timelines.createdAt",
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$course_end",
-                              "$students.request_timelines.createdAt",
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            quit_during_studying_not_poor_female: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students", false] },
-
-                          {
-                            $ne: [
-                              "$students.type_leavel_scholarships",
-                              controllers.typeLeaveScholarship.status
-                                .NOT_ENOUGH_DOCUMENT,
-                            ],
-                          },
-                          {
-                            $in: [
-                              "$students.request_timelines._id",
-                              [
-                                EnumConstant.QUIT,
-                                controllers.typeLeaveScholarship.status
-                                  .LEAVE_BEFORE_EVALUATE,
-                              ],
-                            ],
-                          },
-                          {
-                            $lte: [
-                              "$course_start",
-                              "$students.request_timelines.createdAt",
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$course_end",
-                              "$students.request_timelines.createdAt",
-                            ],
-                          },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            quit_during_studying_not_poor_male: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students", false] },
-
-                          {
-                            $ne: [
-                              "$students.type_leavel_scholarships",
-                              controllers.typeLeaveScholarship.status
-                                .NOT_ENOUGH_DOCUMENT,
-                            ],
-                          },
-                          {
-                            $in: [
-                              "$students.request_timelines._id",
-                              [
-                                EnumConstant.QUIT,
-                                controllers.typeLeaveScholarship.status
-                                  .LEAVE_BEFORE_EVALUATE,
-                              ],
-                            ],
-                          },
-                          {
-                            $lte: [
-                              "$course_start",
-                              "$students.request_timelines.createdAt",
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$course_end",
-                              "$students.request_timelines.createdAt",
-                            ],
-                          },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            // Studing
-            total_studying: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_studying_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_studying_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_studying_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            studying_poor_1_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            studying_poor_1_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_studying_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            studying_poor_2_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            studying_poor_2_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_studying_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            studying_near_poor_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            studying_near_poor_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_studying_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $lt: ["$course_start", maxToday] },
-                          { $gt: ["$course_end", minToday] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            studying_not_poor_female: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $lt: ["$course_start", maxToday] },
-                          { $gt: ["$course_end", minToday] },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            studying_not_poor_male: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $lt: ["$course_start", maxToday] },
-                          { $gt: ["$course_end", minToday] },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // Attendance under 80%
-            total_attendance_student: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_attendance_student_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_attendance_student_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_attendance_student_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            attendance_student_poor_1_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            attendance_student_poor_1_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_attendance_student_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            attendance_student_poor_2_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            attendance_student_poor_2_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_attendance_student_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            attendance_student_near_poor_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            attendance_student_near_poor_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $in: [
-                          "$students.request_timelines._id",
-                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                        ],
-                      },
-                      {
-                        $lt: ["$students.average_attendance", 80],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      { $lt: ["$course_start", maxToday] },
-                      { $gt: ["$course_end", minToday] },
-                      {
-                        $eq: [
-                          "$students.scholarship_status",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $ne: ["$students.average_attendance", null] },
-                      { $ne: ["$students.average_attendance", 0] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_attendance_student_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $in: [
-                              "$students.request_timelines._id",
-                              [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                            ],
-                          },
-                          {
-                            $lt: ["$students.average_attendance", 80],
-                          },
-                          { $lt: ["$course_start", maxToday] },
-                          { $gt: ["$course_end", minToday] },
-                          {
-                            $eq: [
-                              "$students.scholarship_status",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $ne: ["$students.average_attendance", null] },
-                          { $ne: ["$students.average_attendance", 0] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            attendance_student_not_poor_female: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $in: [
-                              "$students.request_timelines._id",
-                              [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                            ],
-                          },
-                          {
-                            $lt: ["$students.average_attendance", 80],
-                          },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                          { $lt: ["$course_start", maxToday] },
-                          { $gt: ["$course_end", minToday] },
-                          {
-                            $eq: [
-                              "$students.scholarship_status",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $ne: ["$students.average_attendance", null] },
-                          { $ne: ["$students.average_attendance", 0] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            attendance_student_not_poor_male: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $in: [
-                              "$students.request_timelines._id",
-                              [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
-                            ],
-                          },
-                          {
-                            $lt: ["$students.average_attendance", 80],
-                          },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                          { $lt: ["$course_start", maxToday] },
-                          { $gt: ["$course_end", minToday] },
-                          {
-                            $eq: [
-                              "$students.scholarship_status",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $ne: ["$students.average_attendance", null] },
-                          { $ne: ["$students.average_attendance", 0] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // Internship
-            total_internship: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_internship_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_internship_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_internship_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            internship_poor_1_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            internship_poor_1_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_internship_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            internship_poor_2_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            internship_poor_2_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_internship_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            internship_near_poor_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            internship_near_poor_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_internships", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                      {
-                        $gt: [
-                          "$students.student_internships.end_date",
-                          maxToday,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_internship_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students.student_internships", false] },
-                          {
-                            $gt: [
-                              "$students.student_internships.end_date",
-                              maxToday,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            internship_not_poor_female: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students.student_internships", false] },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                          {
-                            $gt: [
-                              "$students.student_internships.end_date",
-                              maxToday,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            internship_not_poor_male: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students.student_internships", false] },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                          {
-                            $gt: [
-                              "$students.student_internships.end_date",
-                              maxToday,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // Finish Study
-            total_finish_studying: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_finish_studying_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_finish_studying_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_finish_studying_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            finish_studying_poor_1_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            finish_studying_poor_1_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_finish_studying_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            finish_studying_poor_2_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            finish_studying_poor_2_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_finish_studying_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            finish_studying_near_poor_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            finish_studying_near_poor_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      { $lt: ["$course_end", minToday] },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                      {
-                        $ne: [
-                          "$students.request_timelines._id",
-                          controllers.typeLeaveScholarship.status
-                            .LEAVE_BEFORE_EVALUATE,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_finish_studying_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $lt: ["$course_end", minToday] },
-                          {
-                            $ne: [
-                              "$students.request_timelines._id",
-                              controllers.typeLeaveScholarship.status
-                                .LEAVE_BEFORE_EVALUATE,
-                            ],
-                          },
-                        ],
-                      },
-
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            finish_studying_not_poor_female: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $lt: ["$course_end", minToday] },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                          {
-                            $ne: [
-                              "$students.request_timelines._id",
-                              controllers.typeLeaveScholarship.status
-                                .LEAVE_BEFORE_EVALUATE,
-                            ],
-                          },
-                        ],
-                      },
-
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            finish_studying_not_poor_male: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          { $lt: ["$course_end", minToday] },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                          {
-                            $ne: [
-                              "$students.request_timelines._id",
-                              controllers.typeLeaveScholarship.status
-                                .LEAVE_BEFORE_EVALUATE,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-
-            // Pass exam student
-            total_student_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_female_student_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_male_student_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_poor_1_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            female_student_poor_1_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            male_student_poor_1_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_poor_2_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            female_student_poor_2_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            male_student_poor_2_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_near_poor_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            female_student_near_poor_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            male_student_near_poor_pass: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$students.request_timelines._id",
-                          EnumConstant.ACTIVE,
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $gte: [
-                          "$students.student_total_score",
-                          "$school_score",
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_student_not_poor_pass: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$students.student_total_score",
-                              "$school_score",
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            female_student_not_poor_pass: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$students.student_total_score",
-                              "$school_score",
-                            ],
-                          },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            male_student_not_poor_pass: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$students.request_timelines._id",
-                              EnumConstant.ACTIVE,
-                            ],
-                          },
-                          {
-                            $gte: [
-                              "$students.student_total_score",
-                              "$school_score",
-                            ],
-                          },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            // Employment
-            total_employment: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.student_occupations", false] },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_employment_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_employment_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_employment_poor_1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            employment_poor_1_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            employment_poor_1_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_1,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_employment_poor_2: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            employment_poor_2_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            employment_poor_2_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.POOR_2,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_employment_near_poor: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            employment_near_poor_female: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            employment_near_poor_male: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      {
-                        $eq: [
-                          "$students.type_poverty_status",
-                          EnumConstant.TypePovertyStatus.NEAR_POOR,
-                        ],
-                      },
-                      {
-                        $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            total_employment_not_poor: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      { $ifNull: ["$students.student_occupations", false] },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            employment_not_poor_female: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students.student_occupations", false] },
-                          {
-                            $eq: [
-                              "$students.gender",
-                              EnumConstant.Gender.FEMALE,
-                            ],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
-            },
-            employment_not_poor_male: {
-              $sum: {
-                $cond: [
-                  { $ifNull: ["$students.poor_id", false] },
-                  0,
-                  {
-                    $cond: [
-                      {
-                        $and: [
-                          { $ifNull: ["$students.student_occupations", false] },
-                          {
-                            $eq: ["$students.gender", EnumConstant.Gender.MALE],
-                          },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                ],
-              },
+                1,
+                0
+              ],
             },
           },
+
+          student_register_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_register_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_poor_1_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_poor_1_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_poor_1_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_poor_2_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_poor_2_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_poor_2_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_near_poor_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_near_poor_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_near_poor_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_not_poor_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_not_poor_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_not_poor_register: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: ["$students.createdAt", endDate],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_general_register: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $lte: ["$students.createdAt", endDate],
+                        },
+                        { $ifNull: ["$students", false] },
+
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          student_female_general_register: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $lte: ["$students.createdAt", endDate],
+                        },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                        },
+
+                      ],
+                    },
+
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          student_male_general_register: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                        {
+                          $lte: ["$students.createdAt", endDate],
+                        },
+
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // NOT_ENOUGH_DOC Students
+          total_not_enough_doc_student: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_female_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_male_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_female_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_male_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_female_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_male_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_female_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          not_enough_doc_student_male_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_not_enough_doc_student_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                        {
+                          $eq: [
+                            "$students.type_leavel_scholarships",
+                            controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                          ],
+                        },
+                      ],
+                    },
+
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          not_enough_doc_student_female_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                        {
+                          $eq: [
+                            "$students.type_leavel_scholarships",
+                            controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                          ],
+                        },
+                        {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          not_enough_doc_student_male_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                        {
+                          $eq: [
+                            "$students.type_leavel_scholarships",
+                            controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                          ],
+                        },
+                        {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // Approve Students
+          total_student_approve: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                  ],
+                },
+                
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_female_approve: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_male_approve: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_approve_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_approve_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_approve_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_approve_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_approve_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_approve_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_approve_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_approve_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_approve_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_approve_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_female_approve_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_male_approve_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          student_approve_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          student_female_approve_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },                         
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          student_male_approve_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                    { $in: ["$students.request_timelines._id", [1, 5, 9]] },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // Quit During Study
+          total_quit_during_studying: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_poor_1_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_poor_1_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_poor_2_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_poor_2_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_near_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_near_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_not_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          quit_during_studying_not_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.type_leavel_scholarships",
+                        controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                      ],
+                    },
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [
+                          9,
+                          controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                        ],
+                      ],
+                    },
+                    {
+                      $lte: [
+                        "$course_start",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$course_end",
+                        "$students.request_timelines.createdAt",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_quit_during_studying_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students", false] },
+                        {
+                          $ne: [
+                            "$students.type_leavel_scholarships",
+                           controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                          ],
+                        },
+                        {
+                          $in: [
+                            "$students.request_timelines._id",
+                            [
+                              9,
+                              controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                            ],
+                          ],
+                        },
+                        {
+                          $lte: [
+                            "$course_start",
+                            "$students.request_timelines.createdAt",
+                          ],
+                        },
+                        {
+                          $gte: [
+                            "$course_end",
+                            "$students.request_timelines.createdAt",
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          quit_during_studying_general_female: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students", false] },
+
+                        {
+                          $ne: [
+                            "$students.type_leavel_scholarships",
+                            controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                          ],
+                        },
+                        {
+                          $in: [
+                            "$students.request_timelines._id",
+                            [
+                              9,
+                              controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                            ],
+                          ],
+                        },
+                        {
+                          $lte: [
+                            "$course_start",
+                            "$students.request_timelines.createdAt",
+                          ],
+                        },
+                        {
+                          $gte: [
+                            "$course_end",
+                            "$students.request_timelines.createdAt",
+                          ],
+                        },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          quit_during_studying_general_male: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students", false] },
+
+                        {
+                          $ne: [
+                            "$students.type_leavel_scholarships",
+                            controllers.typeLeaveScholarship.status.NOT_ENOUGH_DOCUMENT,
+                          ],
+                        },
+                        {
+                          $in: [
+                            "$students.request_timelines._id",
+                            [
+                              9,
+                              controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                            ],
+                          ],
+                        },
+                        {
+                          $lte: [
+                            "$course_start",
+                            "$students.request_timelines.createdAt",
+                          ],
+                        },
+                        {
+                          $gte: [
+                            "$course_end",
+                            "$students.request_timelines.createdAt",
+                          ],
+                        },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          // Studing
+          total_studying: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_poor_1_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_poor_1_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_poor_2_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_poor_2_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_near_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_near_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_not_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          studying_not_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_studying_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        { $lt: ["$course_start", maxToday] },
+                        { $gt: ["$course_end", minToday] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          studying_general_female: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        { $lt: ["$course_start", maxToday] },
+                        { $gt: ["$course_end", minToday] },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          studying_general_male: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        { $lt: ["$course_start", maxToday] },
+                        { $gt: ["$course_end", minToday] },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // Attendance under 80%
+          total_attendance_student: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_poor_1_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_poor_1_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_poor_2_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_poor_2_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_near_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_near_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_not_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          attendance_student_not_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $in: [
+                        "$students.request_timelines._id",
+                        [1, 5],
+                      ],
+                    },
+                    {
+                      $lt: ["$students.average_attendance", 80],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    { $lt: ["$course_start", maxToday] },
+                    { $gt: ["$course_end", minToday] },
+                    {
+                      $eq: [
+                        "$students.scholarship_status",
+                        1,
+                      ],
+                    },
+                    { $ne: ["$students.average_attendance", null] },
+                    { $ne: ["$students.average_attendance", 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_attendance_student_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $in: [
+                            "$students.request_timelines._id",
+                            [1, 5],
+                          ],
+                        },
+                        {
+                          $lt: ["$students.average_attendance", 80],
+                        },
+                        { $lt: ["$course_start", maxToday] },
+                        { $gt: ["$course_end", minToday] },
+                        {
+                          $eq: [
+                            "$students.scholarship_status",
+                            1,
+                          ],
+                        },
+                        { $ne: ["$students.average_attendance", null] },
+                        { $ne: ["$students.average_attendance", 0] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          attendance_student_general_female: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $in: [
+                            "$students.request_timelines._id",
+                            [1, 5],
+                          ],
+                        },
+                        {
+                          $lt: ["$students.average_attendance", 80],
+                        },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                        { $lt: ["$course_start", maxToday] },
+                        { $gt: ["$course_end", minToday] },
+                        {
+                          $eq: [
+                            "$students.scholarship_status",
+                            1,
+                          ],
+                        },
+                        { $ne: ["$students.average_attendance", null] },
+                        { $ne: ["$students.average_attendance", 0] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          attendance_student_general_male: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $in: [
+                            "$students.request_timelines._id",
+                            [1, 5],
+                          ],
+                        },
+                        {
+                          $lt: ["$students.average_attendance", 80],
+                        },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                        { $lt: ["$course_start", maxToday] },
+                        { $gt: ["$course_end", minToday] },
+                        {
+                          $eq: [
+                            "$students.scholarship_status",
+                            1,
+                          ],
+                        },
+                        { $ne: ["$students.average_attendance", null] },
+                        { $ne: ["$students.average_attendance", 0] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // Internship
+          total_internship: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_poor_1_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_poor_1_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_poor_2_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_poor_2_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_near_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_near_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_not_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          internship_not_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_internships", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                    {
+                      $gt: [
+                        "$students.student_internships.end_date",
+                        maxToday,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_internship_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students.student_internships", false] },
+                        {
+                          $gt: [
+                            "$students.student_internships.end_date",
+                            maxToday,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          internship_general_female: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students.student_internships", false] },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                        {
+                          $gt: [
+                            "$students.student_internships.end_date",
+                            maxToday,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          internship_general_male: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students.student_internships", false] },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                        {
+                          $gt: [
+                            "$students.student_internships.end_date",
+                            maxToday,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // Finish Study
+          total_finish_studying: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_poor_1_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_poor_1_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_poor_2_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_poor_2_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_near_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_near_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_not_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          finish_studying_not_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    { $lt: ["$course_end", minToday] },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                    {
+                      $ne: [
+                        "$students.request_timelines._id",
+                        controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_finish_studying_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        { $lt: ["$course_end", minToday] },
+                        {
+                          $ne: [
+                            "$students.request_timelines._id",
+                            controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                          ],
+                        },
+                      ],
+                    },
+
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          finish_studying_general_female: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        { $lt: ["$course_end", minToday] },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                        {
+                          $ne: [
+                            "$students.request_timelines._id",
+                            controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                          ],
+                        },
+                      ],
+                    },
+
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          finish_studying_general_male: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        { $lt: ["$course_end", minToday] },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                        {
+                          $ne: [
+                            "$students.request_timelines._id",
+                            controllers.typeLeaveScholarship.status.LEAVE_BEFORE_EVALUATE,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+
+          // Pass exam student
+          total_student_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_female_student_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_male_student_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_poor_1_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          female_student_poor_1_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          male_student_poor_1_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_poor_2_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          female_student_poor_2_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          male_student_poor_2_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_near_poor_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          female_student_near_poor_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          male_student_near_poor_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_not_poor_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          female_student_not_poor_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          male_student_not_poor_pass: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $eq: [
+                        "$students.request_timelines._id",
+                        1,
+                      ],
+                    },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $gte: [
+                        "$students.student_total_score",
+                        "$school_score",
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_student_general_pass: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        {
+                          $gte: [
+                            "$students.student_total_score",
+                            "$school_score",
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          female_student_general_pass: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        {
+                          $gte: [
+                            "$students.student_total_score",
+                            "$school_score",
+                          ],
+                        },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          male_student_general_pass: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        {
+                          $eq: [
+                            "$students.request_timelines._id",
+                            1,
+                          ],
+                        },
+                        {
+                          $gte: [
+                            "$students.student_total_score",
+                            "$school_score",
+                          ],
+                        },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          // Employment
+          total_employment: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.student_occupations", false] },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    { $eq: ["$students.gender", EnumConstant.Gender.FEMALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    { $eq: ["$students.gender", EnumConstant.Gender.MALE] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_poor_1: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_poor_1_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_poor_1_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_1,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_poor_2: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_poor_2_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_poor_2_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.POOR_2,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_near_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_near_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_near_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NEAR_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_not_poor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_not_poor_female: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.FEMALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          employment_not_poor_male: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    {
+                      $eq: [
+                        "$students.type_poverty_status",
+                        EnumConstant.TypePovertyStatus.NOT_POOR,
+                      ],
+                    },
+                    {
+                      $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          total_employment_general: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    { $ifNull: ["$students.student_occupations", false] },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          employment_general_female: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students.student_occupations", false] },
+                        {
+                          $eq: [
+                            "$students.gender",
+                            EnumConstant.Gender.FEMALE,
+                          ],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          employment_general_male: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$students.type_poverty_status", false] },
+                0,
+                {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ifNull: ["$students.student_occupations", false] },
+                        {
+                          $eq: ["$students.gender", EnumConstant.Gender.MALE],
+                        },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
         },
-        { $sort: { code: 1 } },
-      ])
+      },
+      { $sort: { code: 1 } },
+    ])
       .allowDiskUse(true);
 
     let jsonData = CommonUtil.JSONParse(data);
@@ -14583,6 +15339,9 @@ export default class SubjectController {
       "total_student_not_poor_register",
       "student_female_not_poor_register",
       "student_male_not_poor_register",
+      "total_student_general_register",
+      "student_female_general_register",
+      "student_male_general_register",
       "total_not_enough_doc_student",
       "total_not_enough_doc_student_female",
       "total_not_enough_doc_student_male",
@@ -14598,6 +15357,9 @@ export default class SubjectController {
       "total_not_enough_doc_student_not_poor",
       "not_enough_doc_student_female_not_poor",
       "not_enough_doc_student_male_not_poor",
+      "total_not_enough_doc_student_general",
+      "not_enough_doc_student_female_general",
+      "not_enough_doc_student_male_general",
       "total_student_approve",
       "total_student_female_approve",
       "total_student_male_approve",
@@ -14613,6 +15375,9 @@ export default class SubjectController {
       "student_approve_not_poor",
       "student_female_approve_not_poor",
       "student_male_approve_not_poor",
+      "student_approve_general",
+      "student_female_approve_general",
+      "student_male_approve_general",
       "total_quit_during_studying",
       "total_quit_during_studying_female",
       "total_quit_during_studying_male",
@@ -14628,6 +15393,9 @@ export default class SubjectController {
       "total_quit_during_studying_not_poor",
       "quit_during_studying_not_poor_female",
       "quit_during_studying_not_poor_male",
+      "total_quit_during_studying_general",
+      "quit_during_studying_general_female",
+      "quit_during_studying_general_male",
       "total_studying",
       "total_studying_female",
       "total_studying_male",
@@ -14643,6 +15411,9 @@ export default class SubjectController {
       "total_studying_not_poor",
       "studying_not_poor_female",
       "studying_not_poor_male",
+      "total_studying_general",
+      "studying_general_female",
+      "studying_general_male",
       "total_attendance_student",
       "total_attendance_student_female",
       "total_attendance_student_male",
@@ -14658,6 +15429,9 @@ export default class SubjectController {
       "total_attendance_student_not_poor",
       "attendance_student_not_poor_female",
       "attendance_student_not_poor_male",
+      "total_attendance_student_general",
+      "attendance_student_general_female",
+      "attendance_student_general_male",
       "total_internship",
       "total_internship_female",
       "total_internship_male",
@@ -14673,6 +15447,9 @@ export default class SubjectController {
       "total_internship_not_poor",
       "internship_not_poor_female",
       "internship_not_poor_male",
+      "total_internship_general",
+      "internship_general_female",
+      "internship_general_male",
       "total_finish_studying",
       "total_finish_studying_female",
       "total_finish_studying_male",
@@ -14688,6 +15465,9 @@ export default class SubjectController {
       "total_finish_studying_not_poor",
       "finish_studying_not_poor_female",
       "finish_studying_not_poor_male",
+      "total_finish_studying_general",
+      "finish_studying_general_female",
+      "finish_studying_general_male",
       "total_student_pass",
       "total_female_student_pass",
       "total_male_student_pass",
@@ -14703,6 +15483,9 @@ export default class SubjectController {
       "total_student_not_poor_pass",
       "female_student_not_poor_pass",
       "male_student_not_poor_pass",
+      "total_student_general_pass",
+      "female_student_general_pass",
+      "male_student_general_pass",
       "total_employment",
       "total_employment_female",
       "total_employment_male",
@@ -14718,6 +15501,9 @@ export default class SubjectController {
       "total_employment_not_poor",
       "employment_not_poor_female",
       "employment_not_poor_male",
+      "total_employment_general",
+      "employment_general_female",
+      "employment_general_male",
     ];
     let headerColumns: any[] = [];
     let headerTitle: any = [
@@ -14756,6 +15542,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_student_not_poor_register,
         total_student_not_poor_female: sch.student_female_not_poor_register,
         total_student_not_poor_male: sch.student_male_not_poor_register,
+        total_student_general: sch.total_student_general_register,
+        total_student_general_female: sch.student_female_general_register,
+        total_student_general_male: sch.student_male_general_register,
       });
       studentData.push({
         _id: 2,
@@ -14776,6 +15565,9 @@ export default class SubjectController {
         total_student_not_poor_female:
           sch.not_enough_doc_student_female_not_poor,
         total_student_not_poor_male: sch.not_enough_doc_student_male_not_poor,
+        total_student_general: sch.total_not_enough_doc_student_general,
+        total_student_general_female: sch.not_enough_doc_student_female_general,
+        total_student_general_male: sch.not_enough_doc_student_male_general,
       });
       studentData.push({
         _id: 3,
@@ -14794,6 +15586,9 @@ export default class SubjectController {
         total_student_not_poor: sch.student_approve_not_poor,
         total_student_not_poor_female: sch.student_female_approve_not_poor,
         total_student_not_poor_male: sch.student_male_approve_not_poor,
+        total_student_general: sch.student_approve_general,
+        total_student_general_female: sch.student_female_approve_general,
+        total_student_general_male: sch.student_male_approve_general,
       });
       studentData.push({
         _id: 4,
@@ -14813,6 +15608,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_quit_during_studying_not_poor,
         total_student_not_poor_female: sch.quit_during_studying_not_poor_female,
         total_student_not_poor_male: sch.quit_during_studying_not_poor_male,
+        total_student_general: sch.total_quit_during_studying_general,
+        total_student_general_female: sch.quit_during_studying_general_female,
+        total_student_general_male: sch.quit_during_studying_general_male,
       });
       studentData.push({
         _id: 5,
@@ -14831,6 +15629,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_studying_not_poor,
         total_student_not_poor_female: sch.studying_not_poor_female,
         total_student_not_poor_male: sch.studying_not_poor_male,
+        total_student_general: sch.total_studying_general,
+        total_student_general_female: sch.studying_general_female,
+        total_student_general_male: sch.studying_general_male,
       });
       studentData.push({
         _id: 6,
@@ -14849,6 +15650,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_attendance_student_not_poor,
         total_student_not_poor_female: sch.attendance_student_not_poor_female,
         total_student_not_poor_male: sch.attendance_student_not_poor_male,
+        total_student_general: sch.total_attendance_student_general,
+        total_student_general_female: sch.attendance_student_general_female,
+        total_student_general_male: sch.attendance_student_general_male,
       });
       studentData.push({
         _id: 7,
@@ -14867,6 +15671,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_internship_not_poor,
         total_student_not_poor_female: sch.internship_not_poor_female,
         total_student_not_poor_male: sch.internship_not_poor_male,
+        total_student_general: sch.total_internship_general,
+        total_student_general_female: sch.internship_general_female,
+        total_student_general_male: sch.internship_general_male,
       });
       studentData.push({
         _id: 8,
@@ -14885,6 +15692,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_finish_studying_not_poor,
         total_student_not_poor_female: sch.finish_studying_not_poor_female,
         total_student_not_poor_male: sch.finish_studying_not_poor_male,
+        total_student_general: sch.total_finish_studying_general,
+        total_student_general_female: sch.finish_studying_general_female,
+        total_student_general_male: sch.finish_studying_general_male,
       });
       studentData.push({
         _id: 9,
@@ -14903,6 +15713,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_student_not_poor_pass,
         total_student_not_poor_female: sch.female_student_not_poor_pass,
         total_student_not_poor_male: sch.male_student_not_poor_pass,
+        total_student_general: sch.total_student_general_pass,
+        total_student_general_female: sch.female_student_general_pass,
+        total_student_general_male: sch.male_student_general_pass,
       });
 
       studentData.push({
@@ -14922,6 +15735,9 @@ export default class SubjectController {
         total_student_not_poor: sch.total_employment_not_poor,
         total_student_not_poor_female: sch.employment_not_poor_female,
         total_student_not_poor_male: sch.employment_not_poor_male,
+        total_student_general: sch.total_employment_general,
+        total_student_general_female: sch.employment_general_female,
+        total_student_general_male: sch.employment_general_male,
       });
       jsonData[i].student_data = studentData;
       jsonData[i] = CommonUtil.removeKeys(jsonData[i], keyToRemove);
