@@ -20,6 +20,7 @@ export interface ICourses extends Document {
     shifts: IShifts["_id"];
     requirement: string;
     archive: number;
+    updated_by: IStaffs["_id"];
 }
 
 const schema = new Schema({
@@ -38,6 +39,7 @@ const schema = new Schema({
     schools: { type: Schema.Types.ObjectId, ref: "schools" },
     staffs: { type: Schema.Types.ObjectId, ref: "staffs" },
     archive: Number,
+    updated_by: { type: Schema.Types.ObjectId, ref: "staffs" },
 }, {timestamps: true});
 
 export const modelCourse = model<ICourses>("courses", schema);

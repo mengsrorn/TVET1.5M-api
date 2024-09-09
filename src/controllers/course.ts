@@ -98,6 +98,11 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
     this.checkThrowNotFound(getData);
     let data = new this.model(req.body);
     let minToday = new Date(new Date().setHours(0, 0, 0, 0));
+
+    if (req.body._user) {
+      data.updated_by = req.body._user._id;
+    }
+    
     if (getData.course_start < new Date()) {
       if (
           getData.course_start.setHours(0, 0, 0, 0) !=
