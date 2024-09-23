@@ -16657,6 +16657,7 @@ export default class SubjectController {
                                     $expr: {
                                       $eq: ["$students", "$$studentId"],
                                     },
+                                    status: { $ne: EnumConstant.DELETE },
                                     timeline_type:
                                       EnumConstant.TimelineType.SCHOLARSHIP,
                                     createdAt: { $lte: endDate },
