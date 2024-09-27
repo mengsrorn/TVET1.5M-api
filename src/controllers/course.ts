@@ -97,23 +97,36 @@ export default class ApplyMajorController extends AbstractController<ICourses> {
     ]);
     this.checkThrowNotFound(getData);
     let data = new this.model(req.body);
+    let minToday = new Date(new Date().setHours(0, 0, 0, 0));
+
+    if (req.body._user) {
+      data.updated_by = req.body._user._id;
+    }
+    
     if (getData.course_start < new Date()) {
       if (
-        getData.course_start.setHours(0, 0, 0, 0) !=
-        data.course_start.setHours(0, 0, 0, 0)
+          getData.course_start.setHours(0, 0, 0, 0) !=
+          data.course_start.setHours(0, 0, 0, 0)
       ) {
         if (
-          req.body._user.roles.permissions.indexOf(
-            pAdmin.adminAction.change_course_date
-          ) == -1
+            req.body._user.roles.permissions.indexOf(
+                pAdmin.adminAction.change_course_date
+            ) == -1
         ) {
           this.throwHttpError(
-            "វគ្គបានចាប់ផ្តើម អ្នកមិនមានសិទ្ធផ្លាស់ប្ដូរថ្ងៃចូលរៀនទេ!"
+              "វគ្គបានចាប់ផ្តើម អ្នកមិនមានសិទ្ធផ្លាស់ប្ដូរថ្ងៃចូលរៀនទេ!"
           );
         }
       }
     }
-    let obj = CommonUtil.removeKeys(data, [
+    if (getData.course_end < minToday) {
+      if (getData.course_end.setHours(23, 59, 59, 59) !== data.course_end.setHours(23, 59, 59, 59)) {
+        if (req.body._user.roles.permissions.indexOf(pAdmin.adminAction.change_course_date) == -1) {
+          this.throwHttpError("វគ្គត្រូវបានបញ្ចប់ អ្នកមិនមានសិទ្ធផ្លាស់ប្ដូរថ្ងៃបញ្ចប់វគ្គទេ!")
+        }
+      }
+    }
+      let obj = CommonUtil.removeKeys(data, [
       "_id",
       "status",
       "schools",

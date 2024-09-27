@@ -1,5 +1,5 @@
 import { Schema, Document, model } from "mongoose";
-import { IAddress, IApply_majors, IFile_datas} from ".";
+import { IAddress, IApply_majors, IFile_datas, IType_projects} from ".";
 import { AddressSchema } from "./addresses";
 
 export interface ISchools  {
@@ -24,6 +24,7 @@ export interface ISchools  {
     register_by: string;
     register_number: string;
     register_date: Date;
+    type_projects: IType_projects["_id"]
 }
 
 const schema = new Schema({
@@ -46,6 +47,7 @@ const schema = new Schema({
     create_date: Date,
     register_by: String,
     register_number: String,
+    type_projects: { type: Number, ref: "type_projects"},
     register_date: Date
 }, {timestamps: true});
 

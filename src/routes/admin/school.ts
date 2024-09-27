@@ -4,6 +4,7 @@ import { createGetRoute, formPatchRoute, formPostRoute } from '../../utils';
 import CommonUtil from '../../utils/common';
 import validate_request, { CheckType } from '../../utils/validate_request';
 import { pAdmin } from '../../utils/permissionAdmin';
+import EnumConstant from '../../utils/enumConstant';
 
 let validates = [
     validate_request('name', { exist: true }),
@@ -77,7 +78,9 @@ export default [
             ]
         }, async (req) => {
             let { search } = req.query;
-            let query: any = {};
+            let query: any = {
+                type_projects: EnumConstant.TypeProject.scholarship
+            };
             if (req.query.city_provinces) {
                 query["address.city_provinces"] = req.query.city_provinces;
             }
