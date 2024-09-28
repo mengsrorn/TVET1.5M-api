@@ -36,6 +36,8 @@ export default class SubjectController {
         EnumConstant.FINISHED_STUDY,
         EnumConstant.QUIT_BFORE_COURSE,
         EnumConstant.QUIT_DURING_COURSE,
+        EnumConstant.QUIT_AFTER_COURSE,
+        EnumConstant.QUIT_NOT_ENOGUH_DOC
       ],
       student_occupations: ["មានការងារ"],
       student_internships: ["កំពុងកម្មសិក្សា"],
@@ -52,14 +54,14 @@ export default class SubjectController {
       student_occupations,
       city_provinces,
       districts,
-      communes
+      communes,
     } = req.query;
     let [skip, limit] = controllers.student.skipLimit(req);
     let [startDate, endDate] = CommonUtil.parseStartDateEndDate(
       req.query.start_date,
       req.query.end_date
     );
-    endDate = new Date(endDate.setHours(0,0,0,0));
+    endDate = new Date(endDate.setHours(0, 0, 0, 0));
     let matchStudent: any = {
       status: EnumConstant.ACTIVE,
     };
@@ -75,24 +77,32 @@ export default class SubjectController {
     }
     let matchScholarshipStatus: any = {};
     let query: any = {
-      status: EnumConstant.ACTIVE,
+      status: {
+        $in: [
+          EnumConstant.ACTIVE,
+          EnumConstant.RESUME_STUDY,
+          EnumConstant.QUIT,
+        ],
+      },
       timeline_type: EnumConstant.TimelineType.SCHOLARSHIP,
       createdAt: { $gte: startDate, $lte: endDate },
     };
     if (scholarship_status) {
-      matchScholarshipStatus.scholarship_status = Number(scholarship_status);
-      if (
-        scholarship_status == EnumConstant.QUIT ||
-        scholarship_status == EnumConstant.QUIT_DURING_COURSE ||
-        scholarship_status == EnumConstant.QUIT_BFORE_COURSE
-      ) {
-        query.status = EnumConstant.QUIT;
+      if (scholarship_status === 1) {
+        matchScholarshipStatus.scholarship_status = {
+          $in: [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
+        };
+      } else {
+        matchScholarshipStatus.scholarship_status = Number(scholarship_status);
       }
     }
+
     let matchStudentOccupations: any = {};
 
     if (student_occupations) {
-      matchStudentOccupations['student_occupations.has_job'] = { $eq: EnumConstant.ACTIVE};
+      matchStudentOccupations["student_occupations.has_job"] = {
+        $eq: EnumConstant.ACTIVE,
+      };
     }
 
     let matchCityProvince: any = {};
@@ -101,7 +111,7 @@ export default class SubjectController {
     }
 
     let matchDistrict: any = {};
-    if(city_provinces && districts) {
+    if (city_provinces && districts) {
       matchDistrict["address.districts"] = Number(districts);
     }
 
@@ -109,7 +119,6 @@ export default class SubjectController {
     if (districts && communes) {
       matchCommune["address.communes"] = Number(communes);
     }
-
 
     let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
     let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
@@ -124,12 +133,17 @@ export default class SubjectController {
           $group: {
             _id: "$students",
             createdAt: { $first: "$createdAt" },
+            timeline_status: { $first: "$status" },
           },
         },
         {
           $lookup: {
             from: "students",
-            let: { id: "$_id", timelineCreatedAt: "$createdAt" },
+            let: {
+              id: "$_id",
+              timelineCreatedAt: "$createdAt",
+              request_timelines_status: "$timeline_status",
+            },
             pipeline: [
               {
                 $match: {
@@ -164,7 +178,7 @@ export default class SubjectController {
                     {
                       $match: {
                         $expr: { $eq: ["$students", "$$studentId"] },
-                        status: EnumConstant.ACTIVE
+                        status: EnumConstant.ACTIVE,
                       },
                     },
                     { $sort: { createdAt: -1 } },
@@ -186,7 +200,10 @@ export default class SubjectController {
                   scholarship_status: {
                     $cond: {
                       if: {
-                        $eq: ["$scholarship_status", EnumConstant.ACTIVE],
+                        $in: [
+                          "$$request_timelines_status",
+                          [EnumConstant.ACTIVE, EnumConstant.RESUME_STUDY],
+                        ],
                       },
                       then: {
                         $cond: {
@@ -196,7 +213,7 @@ export default class SubjectController {
                             $cond: {
                               if: { $lt: ["$courses.course_end", minToday] },
                               then: EnumConstant.FINISHED_STUDY,
-                              else: "$scholarship_status",
+                              else: "$$request_timelines_status",
                             },
                           },
                         },
@@ -204,7 +221,10 @@ export default class SubjectController {
                       else: {
                         $cond: {
                           if: {
-                            $eq: ["$scholarship_status", EnumConstant.QUIT],
+                            $eq: [
+                              "$$request_timelines_status",
+                              EnumConstant.QUIT,
+                            ],
                           },
                           then: {
                             $cond: {
@@ -233,13 +253,36 @@ export default class SubjectController {
                                       },
                                     ],
                                   },
-                                  then: EnumConstant.QUIT_DURING_COURSE,
-                                  else: "$scholarship_status",
+                                  then: {
+                                    $cond: {
+                                      if: {
+                                        $eq: [
+                                          "$type_leavel_scholarships",
+                                          EnumConstant.QUIT_NOT_ENOGUH_DOC,
+                                        ],
+                                      },
+
+                                      then: EnumConstant.QUIT_NOT_ENOGUH_DOC,
+                                      else: EnumConstant.QUIT_DURING_COURSE,
+                                    },
+                                  },
+                                  else: {
+                                    $cond: {
+                                      if: {
+                                        $lt: [
+                                          "$courses.course_end",
+                                          "$$timelineCreatedAt",
+                                        ],
+                                      },
+                                      then: EnumConstant.QUIT_AFTER_COURSE,
+                                      else: "$$request_timelines_status",
+                                    },
+                                  },
                                 },
                               },
                             },
                           },
-                          else: "$scholarship_status",
+                          else: "$$request_timelines_status",
                         },
                       },
                     },
@@ -316,7 +359,7 @@ export default class SubjectController {
             ...matchStudentOccupations,
             ...matchCityProvince,
             ...matchDistrict,
-            ...matchCommune
+            ...matchCommune,
           },
         },
 

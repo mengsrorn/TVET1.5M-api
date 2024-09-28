@@ -14,7 +14,9 @@ export default class EnumConstant {
     public static readonly DELETE = -9;
     public static readonly QUIT_BFORE_COURSE = 10;
     public static readonly QUIT_DURING_COURSE = 11;
-    
+    public static readonly QUIT_AFTER_COURSE = 7;
+    public static readonly QUIT_NOT_ENOGUH_DOC = 6;
+
     public static readonly Gender = {
         MALE: "male",
         FEMALE: "female",
