@@ -4200,6 +4200,11 @@ export default class SubjectController {
         type_scholarship_documents
       );
     }
+    //1.5M project filter
+    let matchStudent: any = {
+      type_projects: EnumConstant.TypeProject.scholarship,
+    };
+
     let endDate = new Date(req.query.end_date);
     let minToday = new Date(new Date(req.query.end_date).setHours(0, 0, 0));
     let maxToday = new Date(new Date(req.query.end_date).setHours(23, 59, 59));
@@ -4222,6 +4227,7 @@ export default class SubjectController {
                   ...matchPoor,
                   ...matchCourse,
                   ...matchTypeDocument,
+                  ...matchStudent,
                 },
               },
               {
